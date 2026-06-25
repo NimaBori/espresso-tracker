@@ -3,7 +3,7 @@
 A comprehensive backend API to track specialty coffee beans and espresso extraction parameters, built with Spring Boot and MySQL.
 
 ## Tech Stack
-- **Language**: Java 17
+- **Language**: Java 21
 - **Framework**: Spring Boot 3.x
 - **Database**: MySQL
 - **ORM**: Spring Data JPA / Hibernate
@@ -12,7 +12,7 @@ A comprehensive backend API to track specialty coffee beans and espresso extract
 ## Getting Started
 
 ### Prerequisites
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - MySQL Server
 
