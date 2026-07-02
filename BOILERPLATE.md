@@ -27,16 +27,17 @@ A backend API for tracking specialty coffee beans and espresso extraction parame
 
 ## Tech Stack
 
-| Component         | Technology                    |
-|-------------------|-------------------------------|
-| Language          | Java 21                       |
-| Framework         | Spring Boot 3.2.5             |
-| Database          | MySQL 9.6 (Homebrew)          |
-| ORM               | Spring Data JPA / Hibernate   |
-| Migrations        | Flyway Community Edition 9.22.3 |
-| API Documentation | Swagger UI / OpenAPI 3.0 (springdoc-openapi) |
-| Build Tool        | Maven 3.9+                    |
-| DTO Mapping       | Manual (Lombok for boilerplate) |
+| Component             | Technology                           |
+|-----------------------|--------------------------------------|
+| Language              | Java 21                              |
+| Framework             | Spring Boot 3.2.5                    |
+| Security              | Spring Security + JWT (jjwt 0.12.6)  |
+| Database              | MySQL 9.6 (Homebrew)                 |
+| ORM                   | Spring Data JPA / Hibernate          |
+| Migrations            | Flyway Community Edition 9.22.3      |
+| API Documentation     | Swagger UI / OpenAPI 3.0 (springdoc-openapi) |
+| Build Tool            | Maven 3.9+                           |
+| DTO Mapping           | Manual (Lombok for boilerplate)      |
 
 ---
 
@@ -51,31 +52,44 @@ Espresso-Tracker/
 │   ├── main/
 │   │   ├── java/com/espresso/tracker/
 │   │   │   ├── TrackerApplication.java         ← Entry point
+│   │   │   ├── config/                         ← Security & app configuration
+│   │   │   │   └── SecurityConfig.java
 │   │   │   ├── controller/                     ← REST controllers
+│   │   │   │   ├── AuthController.java
 │   │   │   │   ├── BeanController.java
 │   │   │   │   └── BrewLogController.java
 │   │   │   ├── dto/                            ← Request/Response DTOs
 │   │   │   │   ├── BeanRequestDTO.java
 │   │   │   │   ├── BeanResponseDTO.java
 │   │   │   │   ├── BrewLogRequestDTO.java
-│   │   │   │   └── BrewLogResponseDTO.java
+│   │   │   │   ├── BrewLogResponseDTO.java
+│   │   │   │   ├── LoginRequest.java
+│   │   │   │   └── LoginResponse.java
 │   │   │   ├── entity/                         ← JPA entities
 │   │   │   │   ├── Bean.java
 │   │   │   │   ├── BrewLog.java
-│   │   │   │   └── RoastLevel.java             ← ENUM
+│   │   │   │   ├── RoastLevel.java             ← ENUM
+│   │   │   │   ├── Role.java                   ← ENUM
+│   │   │   │   └── User.java
 │   │   │   ├── exception/                      ← Global error handling
 │   │   │   │   ├── GlobalExceptionHandler.java
 │   │   │   │   └── ResourceNotFoundException.java
 │   │   │   ├── repository/                     ← Spring Data JPA repos
 │   │   │   │   ├── BeanRepository.java
-│   │   │   │   └── BrewLogRepository.java
+│   │   │   │   ├── BrewLogRepository.java
+│   │   │   │   └── UserRepository.java
+│   │   │   ├── security/                       ← JWT & auth components
+│   │   │   │   ├── CustomUserDetailsService.java
+│   │   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   │   └── JwtService.java
 │   │   │   └── service/                        ← Business logic
 │   │   │       ├── BeanService.java
 │   │   │       └── BrewLogService.java
 │   │   └── resources/
 │   │       ├── application.properties          ← App configuration
 │   │       └── db/migration/
-│   │           └── V1__init_schema.sql         ← Flyway migration
+│   │           ├── V1__init_schema.sql         ← Flyway migration
+│   │           └── V2__add_users_table.sql     ← Flyway migration
 │   └── test/java/com/espresso/tracker/
 └── pom.xml
 ```
@@ -115,6 +129,15 @@ spring.jpa.properties.hibernate.format_sql=true
 
 - `ddl-auto=validate` — Hibernate checks that the database schema matches the entities **without** modifying it. Schema changes are managed by Flyway migrations.
 
+### JWT Configuration
+```properties
+jwt.secret=dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGtleSBmb3IgZXNwcmVzc28gdHJhY2tlciBhcHBsaWNhdGlvbg==
+jwt.expiration-ms=86400000
+```
+
+- `jwt.secret` — Base64-encoded HMAC-SHA256 key used to sign and verify JWT tokens. **Replace with a strong, unique secret in production.**
+- `jwt.expiration-ms` — Token lifetime in milliseconds. Default is `86400000` (24 hours).
+
 ---
 
 ## Database & Flyway Migrations
@@ -127,9 +150,7 @@ Flyway is a database migration tool that applies versioned SQL scripts in order.
 2. It compares the migrations in `src/main/resources/db/migration/` against what's been applied.
 3. Any new migrations are applied in order of their version number (e.g., `V1`, `V2`, etc.).
 
-### Current Migration
-
-**File:** `src/main/resources/db/migration/V1__init_schema.sql`
+### Migration V1 — `V1__init_schema.sql`
 
 Creates two tables:
 
@@ -145,9 +166,21 @@ Creates two tables:
   - `dose_grams`, `yield_grams`, `extraction_time_seconds`
   - `grind_setting`, `rating`, `notes`, `created_at`
 
+### Migration V2 — `V2__add_users_table.sql`
+
+Creates the `users` table for authentication:
+
+- **`users`** — Application users:
+  - `id` (BINARY(16) UUID, primary key)
+  - `username` (VARCHAR 50, unique, not null)
+  - `email` (VARCHAR 100, unique, not null)
+  - `password` (VARCHAR 255, not null — BCrypt-encoded)
+  - `role` (VARCHAR 20, default `'USER'`) — either `USER` or `ADMIN`
+  - `created_at`, `updated_at`
+
 ### Adding a New Migration
 
-1. Create a file named `V2__description.sql` in `src/main/resources/db/migration/`.
+1. Create a file named `V3__description.sql` in `src/main/resources/db/migration/`.
 2. Write your SQL (ALTER TABLE, CREATE TABLE, etc.).
 3. Restart the app — Flyway will apply it automatically.
 
@@ -169,29 +202,56 @@ If you change the migration, you must also update the Java enum or vice versa. O
 
 All endpoints are prefixed with `/api/v1/`.
 
+### Authentication API (`AuthController`)
+
+| Method | Endpoint              | Description                            | Status Codes               |
+|--------|-----------------------|----------------------------------------|----------------------------|
+| POST   | `/api/v1/auth/login`  | Authenticate user, returns JWT token   | 200 OK, 401 Unauthorized, 400 Bad Request |
+
 ### Beans API (`BeanController`)
 
-| Method | Endpoint                | Description                          | Status Codes               |
-|--------|-------------------------|--------------------------------------|----------------------------|
-| GET    | `/api/v1/beans`         | List all active beans (paginated)    | 200 OK                     |
-| GET    | `/api/v1/beans/{id}`    | Get a bean by UUID                   | 200 OK, 404 Not Found      |
-| POST   | `/api/v1/beans`         | Add a new coffee bean                | 201 Created, 400 Bad Request |
-| PUT    | `/api/v1/beans/{id}`    | Update an existing bean              | 200 OK, 404 Not Found      |
-| DELETE | `/api/v1/beans/{id}`    | Soft-delete (sets is_active=false)   | 204 No Content, 404 Not Found |
+| Method | Endpoint                | Description                          | Required Role    | Status Codes               |
+|--------|-------------------------|--------------------------------------|------------------|----------------------------|
+| GET    | `/api/v1/beans`         | List all active beans (paginated)    | Authenticated    | 200 OK                     |
+| GET    | `/api/v1/beans/{id}`    | Get a bean by UUID                   | Authenticated    | 200 OK, 404 Not Found      |
+| POST   | `/api/v1/beans`         | Add a new coffee bean                | ADMIN            | 201 Created, 400 Bad Request |
+| PUT    | `/api/v1/beans/{id}`    | Update an existing bean              | ADMIN            | 200 OK, 404 Not Found      |
+| DELETE | `/api/v1/beans/{id}`    | Soft-delete (sets is_active=false)   | ADMIN            | 204 No Content, 404 Not Found |
 
 ### Brew Logs API (`BrewLogController`)
 
-| Method | Endpoint                         | Description                               | Status Codes          |
-|--------|----------------------------------|-------------------------------------------|-----------------------|
-| POST   | `/api/v1/brew-logs`              | Log a new brew extraction                 | 201 Created           |
-| GET    | `/api/v1/brew-logs/bean/{beanId}` | Get all brew logs for a specific bean    | 200 OK                |
-| GET    | `/api/v1/brew-logs/top-rated`     | Get brew logs with rating 4 or 5         | 200 OK                |
+| Method | Endpoint                         | Description                               | Required Role    | Status Codes          |
+|--------|----------------------------------|-------------------------------------------|------------------|-----------------------|
+| POST   | `/api/v1/brew-logs`              | Log a new brew extraction                 | Authenticated    | 201 Created           |
+| GET    | `/api/v1/brew-logs/bean/{beanId}` | Get all brew logs for a specific bean    | Authenticated    | 200 OK                |
+| GET    | `/api/v1/brew-logs/top-rated`     | Get brew logs with rating 4 or 5         | Authenticated    | 200 OK                |
 
-### Example: Creating a Bean
+### Example: Login (Get JWT Token)
+
+```bash
+curl -X POST http://localhost:9090/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+```
+
+Response: `200 OK`
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbiIsImlhdCI6MTc1MDAwMDAwMCwiZXhwIjoxNzUwMDg2NDAwfQ...",
+  "username": "admin",
+  "role": "ADMIN"
+}
+```
+
+### Example: Creating a Bean (with JWT)
 
 ```bash
 curl -X POST http://localhost:9090/api/v1/beans \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
   -d '{
     "roasterName": "Stumptown",
     "beanName": "Hair Bender",
@@ -215,11 +275,12 @@ Response: `201 Created`
 }
 ```
 
-### Example: Logging a Brew
+### Example: Logging a Brew (with JWT)
 
 ```bash
 curl -X POST http://localhost:9090/api/v1/brew-logs \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
   -d '{
     "beanId": "550e8400-e29b-41d4-a716-446655440000",
     "doseGrams": 18.0,
@@ -250,7 +311,7 @@ Once the application is running, open your browser to:
 ### What You Can Do in Swagger UI
 
 #### 1. Browse Endpoints
-All API endpoints are grouped by tag (Beans API, Brew Logs API). Each endpoint shows:
+All API endpoints are grouped by tag (Authentication API, Beans API, Brew Logs API). Each endpoint shows:
 - HTTP method (GET, POST, PUT, DELETE)
 - Full URL path
 - Short description from `@Operation`
@@ -318,6 +379,138 @@ Business logic lives in service classes:
 | `ResourceNotFoundException`      | 404         | `{ "error": "Not Found", "message": "...", "timestamp": "...", "status": 404 }` |
 | `MethodArgumentNotValidException`| 400         | Field-level validation errors |
 | `Exception` (catch-all)          | 500         | Generic error message      |
+
+---
+
+## JWT Authentication & Security
+
+This section explains how Spring Security and JWT authentication work in this project.
+
+### Authentication Flow
+
+```
+┌──────────┐         ┌──────────────────┐         ┌──────────┐
+│  Client  │ ──POST──▶  /api/v1/auth/   │ ──────▶  │  DB:     │
+│ (curl/   │   login  │  login           │  verify  │  users   │
+│  Swagger)│         │                  │  creds   │  table   │
+└────┬─────┘         └────────┬─────────┘         └──────────┘
+     │                        │
+     │                        │ Returns JWT token
+     │                        ▼
+     │              ┌──────────────────┐
+     │              │  Client saves    │
+     │              │  the token       │
+     │              └──────────────────┘
+     │
+     │ ──GET /api/v1/beans ──┐
+     │   Authorization:       │
+     │   Bearer <token>       │
+     │                        ▼
+     │              ┌──────────────────┐
+     │              │ JwtAuthFilter    │
+     │              │ • extracts token │
+     │              │ • validates sig  │
+     │              │ • loads user     │
+     │              └────────┬─────────┘
+     │                       │
+     │                       ▼
+     │              ┌──────────────────┐
+     │              │ SecurityContext  │
+     │              │ holds auth info  │
+     │              └────────┬─────────┘
+     │                       │
+     │                       ▼
+     │              ┌──────────────────┐
+     │              │ Controller       │
+     │              │ (authenticated)  │
+     │              └──────────────────┘
+```
+
+### How Each Component Works
+
+#### 1. User Registration (Manual / Seed Data)
+There is no registration endpoint built in. Users are inserted directly into the `users` table with a BCrypt-encoded password. Two roles are supported:
+
+- **`USER`** — Can read beans, read/write brew logs
+- **`ADMIN`** — Can do everything including create/update/delete beans
+
+**Example: Insert a test user (run after starting the app & running Flyway migration V2):**
+```sql
+INSERT INTO users (id, username, email, password, role)
+VALUES (
+  UUID_TO_BIN(UUID()),
+  'admin',
+  'admin@espresso.com',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  'ADMIN'
+);
+```
+
+To generate a BCrypt password for your own user, use this one-liner:
+```bash
+mvn spring-boot:run -Dspring-boot.run.arguments="--bcrypt=mypassword"
+```
+Or generate one online at `https://bcrypt-generator.com/`.
+
+#### 2. `SecurityConfig`
+- **Disables CSRF** — The API uses stateless JWT, so CSRF is unnecessary.
+- **Stateless sessions** — No HTTP session is created; every request is authenticated individually via the JWT.
+- **Endpoint security rules:**
+  - `POST /api/v1/auth/login` — open to everyone
+  - Swagger UI paths — open to everyone
+  - `GET /api/v1/beans/**` — any authenticated user (USER or ADMIN)
+  - `POST/PUT/DELETE /api/v1/beans/**` — ADMIN only
+  - `/api/v1/brew-logs/**` — any authenticated user
+  - Any other request — authenticated
+- Registers `JwtAuthenticationFilter` before `UsernamePasswordAuthenticationFilter` in the filter chain.
+
+#### 3. `JwtService`
+- Uses **HMAC-SHA256** with a Base64-encoded secret key from `application.properties`
+- `generateToken(username, extraClaims)` — creates a signed JWT with subject (username), issued-at, and expiration timestamps
+- `extractUsername(token)` — parses the token and returns the subject claim
+- `isTokenValid(token)` — verifies the signature and checks the expiration date
+
+#### 4. `CustomUserDetailsService`
+- Implements Spring Security's `UserDetailsService`
+- Looks up a user by username in the database
+- Returns a `UserDetails` object with the BCrypt password and granted authority (e.g., `ROLE_USER` or `ROLE_ADMIN`)
+
+#### 5. `JwtAuthenticationFilter`
+- Extends `OncePerRequestFilter` — runs once per request
+- Reads the `Authorization` header and looks for `Bearer <token>` format
+- Extracts the username from the token via `JwtService`
+- If the token is valid and no existing authentication exists, loads the `UserDetails` and sets `UsernamePasswordAuthenticationToken` in the `SecurityContextHolder`
+- If no valid token is present, the request continues unauthenticated (and Spring Security will deny access based on the security rules)
+
+### Role-Based Access Summary
+
+| Role   | Beans (GET) | Beans (POST/PUT/DELETE) | Brew Logs | Login |
+|--------|-------------|-------------------------|-----------|-------|
+| USER   | ✅          | ❌                      | ✅        | ✅    |
+| ADMIN  | ✅          | ✅                      | ✅        | ✅    |
+| None   | ❌          | ❌                      | ❌        | ✅    |
+
+### Testing with curl
+
+```bash
+# 1. Get a token (replace credentials with your seeded user)
+TOKEN=$(curl -s -X POST http://localhost:9090/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | jq -r '.token')
+
+# 2. Use the token to list beans (USER or ADMIN)
+curl http://localhost:9090/api/v1/beans \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Create a bean (ADMIN only — will fail if token is from a USER role)
+curl -X POST http://localhost:9090/api/v1/beans \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"roasterName":"Test","beanName":"Test Bean","origin":"Test","roastLevel":"MEDIUM"}'
+
+# 4. Without token (will get 403 Forbidden)
+curl http://localhost:9090/api/v1/beans
+```
 
 ---
 
