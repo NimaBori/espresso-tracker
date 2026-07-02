@@ -1,6 +1,9 @@
 package com.espresso.tracker.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -11,6 +14,9 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "brew_logs")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class BrewLog {
 
     @Id
@@ -42,82 +48,4 @@ public class BrewLog {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    // Default Constructor for JPA
-    public BrewLog() {
-    }
-
-    // Getters and Setters
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public Bean getBean() {
-        return bean;
-    }
-
-    public void setBean(Bean bean) {
-        this.bean = bean;
-    }
-
-    public Double getDoseGrams() {
-        return doseGrams;
-    }
-
-    public void setDoseGrams(Double doseGrams) {
-        this.doseGrams = doseGrams;
-    }
-
-    public Double getYieldGrams() {
-        return yieldGrams;
-    }
-
-    public void setYieldGrams(Double yieldGrams) {
-        this.yieldGrams = yieldGrams;
-    }
-
-    public Integer getExtractionTimeSeconds() {
-        return extractionTimeSeconds;
-    }
-
-    public void setExtractionTimeSeconds(Integer extractionTimeSeconds) {
-        this.extractionTimeSeconds = extractionTimeSeconds;
-    }
-
-    public String getGrindSetting() {
-        return grindSetting;
-    }
-
-    public void setGrindSetting(String grindSetting) {
-        this.grindSetting = grindSetting;
-    }
-
-    public Integer getRating() {
-        return rating;
-    }
-
-    public void setRating(Integer rating) {
-        this.rating = rating;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

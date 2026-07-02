@@ -1,6 +1,9 @@
 package com.espresso.tracker.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -13,6 +16,9 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "beans")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Bean {
 
     @Id
@@ -44,84 +50,6 @@ public class Bean {
 
     @OneToMany(mappedBy = "bean", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BrewLog> brewLogs = new ArrayList<>();
-
-    // Default Constructor for JPA
-    public Bean() {
-    }
-
-    // Getters and Setters
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getRoasterName() {
-        return roasterName;
-    }
-
-    public void setRoasterName(String roasterName) {
-        this.roasterName = roasterName;
-    }
-
-    public String getBeanName() {
-        return beanName;
-    }
-
-    public void setBeanName(String beanName) {
-        this.beanName = beanName;
-    }
-
-    public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
-
-    public RoastLevel getRoastLevel() {
-        return roastLevel;
-    }
-
-    public void setRoastLevel(RoastLevel roastLevel) {
-        this.roastLevel = roastLevel;
-    }
-
-    public String getTastingNotes() {
-        return tastingNotes;
-    }
-
-    public void setTastingNotes(String tastingNotes) {
-        this.tastingNotes = tastingNotes;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean active) {
-        isActive = active;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public List<BrewLog> getBrewLogs() {
-        return brewLogs;
-    }
-
-    public void setBrewLogs(List<BrewLog> brewLogs) {
-        this.brewLogs = brewLogs;
-    }
 
     // Utility methods for bi-directional mapping
     public void addBrewLog(BrewLog log) {
