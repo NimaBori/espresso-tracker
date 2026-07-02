@@ -77,7 +77,7 @@ Espresso-Tracker/
 │   │       └── db/migration/
 │   │           └── V1__init_schema.sql         ← Flyway migration
 │   └── test/java/com/espresso/tracker/
-└── .antigravity/
+└── pom.xml
 ```
 
 ---
