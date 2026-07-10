@@ -1,0 +1,28 @@
+@use "../styles/variables" as *;
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  input[type="range"] {
+    flex: 1;
+    padding: 0;
+    border: none;
+    background: none;
+    appearance: auto;
+    box-shadow: none;
+
+    &:focus {
+      outline: none;
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  &__value {
+    font-size: 1.25rem;
+    min-width: 100px;
+    color: $color-warning;
+  }
+}

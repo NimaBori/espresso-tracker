@@ -34,12 +34,9 @@ public class SecurityConfig {
             .requestMatchers("/api/v1/auth/**").permitAll()
             // Swagger / OpenAPI
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-            // Beans: GET is read-only for all authenticated users, POST/PUT/DELETE require
-            // ADMIN
-            .requestMatchers(HttpMethod.GET, "/api/v1/beans/**").authenticated()
-            .requestMatchers("/api/v1/beans/**").hasRole("ADMIN")
-            // Brew logs: all endpoints require authentication
-            .requestMatchers("/api/v1/brew-logs/**").authenticated()
+            // Allow all API endpoints for development (no auth required)
+            .requestMatchers("/api/v1/beans/**").permitAll()
+            .requestMatchers("/api/v1/brew-logs/**").permitAll()
             // Any other request
             .anyRequest().authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

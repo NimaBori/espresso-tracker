@@ -1,0 +1,75 @@
+@use "../styles/variables" as *;
+
+.bean-detail {
+  max-width: 900px;
+  margin: 0 auto;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__info {
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  &__info-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid $color-border;
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  &__roaster {
+    color: $color-text-light;
+    font-size: 1rem;
+  }
+
+  &__field {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #f0ebe4;
+    }
+  }
+
+  &__label {
+    min-width: 140px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: $color-text-light;
+  }
+
+  &__logs {
+    margin-top: 0;
+  }
+
+  &__logs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    h2 {
+      font-size: 1.25rem;
+    }
+  }
+}
