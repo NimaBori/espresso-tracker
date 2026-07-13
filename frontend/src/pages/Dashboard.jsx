@@ -1,27 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getBeans, getTopRatedLogs } from "../services/api";
+import Slider from "../components/Slider";
+import BeanCard from "../components/BeanCard";
+import BrewCard from "../components/BrewCard";
 import "./Dashboard.scss";
-
-function StarRating({ rating }) {
-  return (
-    <span className="star-rating">
-      {"★".repeat(rating)}{"☆".repeat(5 - rating)}
-    </span>
-  );
-}
-
-function formatTime(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-function Ratio({ dose, yield: yieldGrams }) {
-  if (!dose || !yieldGrams) return null;
-  const ratio = (yieldGrams / dose).toFixed(1);
-  return <span className="ratio">{ratio}:1</span>;
-}
 
 export default function Dashboard() {
   const [beans, setBeans] = useState([]);
@@ -62,63 +45,29 @@ export default function Dashboard() {
 
       {error && <div className="error-message">{error}</div>}
 
-      <div className="dashboard-grid">
-        <div className="card dashboard-section">
-          <div className="dashboard-section__header">
-            <h2>Your Beans</h2>
-            <Link to="/beans" className="btn btn-outline btn-sm">View All</Link>
+      {/* Beans Slider — 3 cards per slide */}
+      <Slider title="Your Beans" slidesToShow={3}>
+        {beans.length === 0 ? (
+          <div className="empty-state">
+            <p>No beans yet. Start by adding your first coffee bean!</p>
+            <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>
           </div>
-          {beans.length === 0 ? (
-            <div className="empty-state">
-              <p>No beans yet. Start by adding your first coffee bean!</p>
-              <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>
-            </div>
-          ) : (
-            <div className="bean-preview-list">
-              {beans.slice(0, 5).map((bean) => (
-                <Link to={`/beans/${bean.id}`} key={bean.id} className="bean-preview-item">
-                  <div className="bean-preview-item__info">
-                    <span className="bean-preview-item__name">{bean.beanName}</span>
-                    <span className="bean-preview-item__roaster">{bean.roasterName}</span>
-                  </div>
-                  <span className={`badge badge-${bean.roastLevel?.toLowerCase()}`}>
-                    {bean.roastLevel}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        ) : (
+          beans.map((bean) => <BeanCard key={bean.id} bean={bean} />)
+        )}
+      </Slider>
 
-        <div className="card dashboard-section">
-          <div className="dashboard-section__header">
-            <h2>Top Rated Brews</h2>
+      {/* Top Rated Brews Slider — 2 cards per slide */}
+      <Slider title="Top Rated Brews" slidesToShow={2}>
+        {topRatedLogs.length === 0 ? (
+          <div className="empty-state">
+            <p>No brew logs yet. Log your first espresso extraction!</p>
+            <Link to="/brew-log/new" className="btn btn-secondary">Log a Brew</Link>
           </div>
-          {topRatedLogs.length === 0 ? (
-            <div className="empty-state">
-              <p>No brew logs yet. Log your first espresso extraction!</p>
-              <Link to="/brew-log/new" className="btn btn-secondary">Log a Brew</Link>
-            </div>
-          ) : (
-            <div className="brew-preview-list">
-              {topRatedLogs.slice(0, 5).map((log) => (
-                <div key={log.id} className="brew-preview-item">
-                  <div className="brew-preview-item__header">
-                    <span className="brew-preview-item__bean">{log.beanName || "Unknown Bean"}</span>
-                    <StarRating rating={log.rating} />
-                  </div>
-                  <div className="brew-preview-item__details">
-                    <span>{log.doseGrams}g in</span>
-                    <span>{log.yieldGrams}g out</span>
-                    <Ratio dose={log.doseGrams} yield={log.yieldGrams} />
-                    <span>{formatTime(log.extractionTimeSeconds)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+        ) : (
+          topRatedLogs.map((log) => <BrewCard key={log.id} brew={log} />)
+        )}
+      </Slider>
     </div>
   );
 }

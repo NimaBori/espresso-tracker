@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espresso Tracker - How to Run</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+  
+  header {
+    background: linear-gradient(135deg, #16213e, #0f3460);
+    padding: 3rem 0;
+    text-align: center;
+    border-bottom: 3px solid #e94560;
+  }
+  
+  header h1 {
+    font-size: 2rem;
+    color: #fff;
+    margin-bottom: 0.5rem;
+  }
+  
+  header p {
+    color: #a0a0c0;
+    font-size: 1.05rem;
+  }
+  
+  .step {
+    background: #16213e;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    overflow: hidden;
+    border: 1px solid #0f3460;
+  }
+  
+  .step-header {
+    background: #0f3460;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .step-number {
+    background: #e94560;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  
+  .step-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #fff;
+  }
+  
+  .step-body {
+    padding: 1.5rem;
+  }
+  
+  .step-desc {
+    color: #a0a0c0;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+  }
+  
+  pre {
+    background: #0d1117;
+    color: #e6edf3;
+    padding: 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    border: 1px solid #30363d;
+    margin: 0.75rem 0;
+  }
+  
+  .comment { color: #8b949e; }
+  .cmd { color: #7ee787; }
+  .output { color: #58a6ff; }
+  .highlight { color: #ffa657; }
+  
+  .note {
+    background: #1c2541;
+    border-left: 4px solid #e94560;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    color: #c0c0d0;
+  }
+  
+  .section-divider {
+    text-align: center;
+    padding: 1rem 0;
+    color: #30363d;
+    font-size: 1.5rem;
+  }
+  
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: #4a4a6a;
+    font-size: 0.85rem;
+    border-top: 1px solid #0f3460;
+    margin-top: 2rem;
+  }
+
+  @media print {
+    body { background: #fff; color: #333; }
+    header { background: #16213e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step { background: #f5f5f5 !important; border-color: #ddd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step-header { background: #0f3460 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step-number { background: #e94560 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    pre { background: #f0f0f0 !important; border-color: #ddd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .comment { color: #666 !important; }
+    .cmd { color: #2d6 !important; }
+    .output { color: #36f !important; }
+    .highlight { color: #e94560 !important; }
+    .note { background: #fef9f0 !important; border-color: #e94560 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #333 !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>☕ Espresso Tracker</h1>
+    <p>Terminal commands to run the full application</p>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- Step 1 -->
+<div class="step">
+  <div class="step-header">
+    <span class="step-number">1</span>
+    <span class="step-title">Start MySQL Database</span>
+  </div>
+  <div class="step-body">
+    <div class="step-desc">Make sure MySQL is running on port <strong>3307</strong> (as configured in <code>application.properties</code>).</div>
+    <pre><span class="comment"># Check if MySQL is running</span>
+<span class="cmd">mysql -u root -p -h 127.0.0.1 -P 3307</span>
+
+<span class="comment"># If MySQL is not running via Homebrew:</span>
+<span class="cmd">brew services start mysql</span>
+
+<span class="comment"># Verify the database exists (it will be auto-created if not):</span>
+<span class="cmd">mysql -u root -p -h 127.0.0.1 -P 3307 -e "SHOW DATABASES;"</span>
+</pre>
+    <div class="note">The database <code>espresso_tracker</code> will be created automatically by Hibernate/Flyway when the backend starts.</div>
+  </div>
+</div>
+
+<!-- Step 2 -->
+<div class="step">
+  <div class="step-header">
+    <span class="step-number">2</span>
+    <span class="step-title">Start the Spring Boot Backend</span>
+  </div>
+  <div class="step-body">
+    <div class="step-desc">From the project root directory, run this Maven command:</div>
+    <pre><span class="comment"># Navigate to project root (if not already there)</span>
+<span class="cmd">cd /Users/nima/My\ Codes/JaveSpring/Espresso-Tracker</span>
+
+<span class="comment"># Start the backend on port 9090</span>
+<span class="cmd">mvn spring-boot:run</span>
+
+<span class="comment"># Wait for output showing:</span>
+<span class="output">Tomcat started on port 9090 (http) with context path ''
+Started TrackerApplication in 1.7 seconds</span></pre>
+    <div class="note">The backend will be available at <strong>http://localhost:9090</strong>. API endpoints are at <strong>http://localhost:9090/api/v1/beans</strong> and <strong>http://localhost:9090/api/v1/brew-logs</strong>.</div>
+  </div>
+</div>
+
+<!-- Step 3 -->
+<div class="step">
+  <div class="step-header">
+    <span class="step-number">3</span>
+    <span class="step-title">Start the React Frontend</span>
+  </div>
+  <div class="step-body">
+    <div class="step-desc">Open a <strong>new terminal window</strong> and run:</div>
+    <pre><span class="comment"># Navigate to the frontend directory</span>
+<span class="cmd">cd /Users/nima/My\ Codes/JaveSpring/Espresso-Tracker/frontend</span>
+
+<span class="comment"># Install dependencies (only needed once)</span>
+<span class="cmd">npm install</span>
+
+<span class="comment"># Start the Vite dev server</span>
+<span class="cmd">npm run dev</span>
+
+<span class="comment"># Wait for output showing:</span>
+<span class="output">VITE v8.1.3  ready in 116 ms
+➜  Local:   http://localhost:5173/</span></pre>
+    <div class="note">The frontend will be available at <strong>http://localhost:5173</strong>. The Vite dev server automatically proxies <code>/api/*</code> requests to the backend at <strong>localhost:9090</strong>.</div>
+  </div>
+</div>
+
+<!-- Step 4 -->
+<div class="step">
+  <div class="step-header">
+    <span class="step-number">4</span>
+    <span class="step-title">Open the App & Verify</span>
+  </div>
+  <div class="step-body">
+    <div class="step-desc">With both servers running, open the frontend in your browser:</div>
+    <pre><span class="comment"># Open in default browser</span>
+<span class="cmd">open http://localhost:5173</span>
+
+<span class="comment"># Or test the API directly via the proxy:</span>
+<span class="cmd">curl http://localhost:5173/api/v1/beans</span>
+
+<span class="comment"># Expected response (empty array = no data yet):</span>
+<span class="output">{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 0,
+  ...
+}</span></pre>
+  </div>
+</div>
+
+<div class="section-divider">─── ◆ ───</div>
+
+<!-- Quick Reference -->
+<div class="step">
+  <div class="step-header">
+    <span class="step-number">⚡</span>
+    <span class="step-title">Quick Reference</span>
+  </div>
+  <div class="step-body">
+    <pre>
+<span class="comment"># ┌─────────────────────────────────────────────┐</span>
+<span class="comment"># │  Backend:  mvn spring-boot:run              │</span>
+<span class="comment"># │  Frontend: cd frontend && npm run dev       │</span>
+<span class="comment"># │  Browser:  http://localhost:5173            │</span>
+<span class="comment"># └─────────────────────────────────────────────┘</span>
+
+<span class="highlight">Ports:</span>
+  <span class="cmd">5173</span>  → React frontend (Vite dev server)
+  <span class="cmd">9090</span>  → Spring Boot backend
+  <span class="cmd">3307</span>  → MySQL database
+
+<span class="highlight">Pages:</span>
+  <span class="cmd">/</span>            → Dashboard (recent beans + top brews)
+  <span class="cmd">/beans</span>       → All beans (card grid)
+  <span class="cmd">/beans/new</span>   → Add a new bean
+  <span class="cmd">/beans/:id</span>   → Bean details + brew logs
+  <span class="cmd">/brew-log/new</span> → Log a new espresso extraction
+
+<span class="highlight">API Endpoints (proxied via Vite):</span>
+  <span class="cmd">GET    /api/v1/beans</span>           → List all beans
+  <span class="cmd">POST   /api/v1/beans</span>           → Create a bean
+  <span class="cmd">GET    /api/v1/beans/{id}</span>      → Get bean by ID
+  <span class="cmd">PUT    /api/v1/beans/{id}</span>      → Update a bean
+  <span class="cmd">DELETE /api/v1/beans/{id}</span>      → Delete a bean
+  <span class="cmd">POST   /api/v1/brew-logs</span>       → Log a brew
+  <span class="cmd">GET    /api/v1/brew-logs/bean/{id}</span> → Logs for a bean</pre>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  <div class="container">
+    Espresso Tracker — React + Vite + Spring Boot + MySQL
+  </div>
+</footer>
+
+</body>
+</html>

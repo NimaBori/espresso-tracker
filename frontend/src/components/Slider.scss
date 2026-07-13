@@ -1,0 +1,116 @@
+@use "../styles/variables" as *;
+
+.slider-section {
+  margin-bottom: 2.5rem;
+
+  &__title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: $color-primary;
+  }
+}
+
+.slider {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  position: relative;
+
+  &__track {
+    flex: 1;
+    overflow: hidden;
+    border-radius: $border-radius-lg;
+  }
+
+  &__slides {
+    display: grid;
+    transition: none;
+  }
+
+  &__slide {
+    display: grid;
+    gap: 1rem;
+    padding: 0.25rem;
+  }
+
+  &__card-wrapper {
+    min-width: 0;
+  }
+
+  &__btn {
+    flex-shrink: 0;
+    width: 40px;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $border-radius;
+    font-size: 1.5rem;
+    color: $color-primary;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: $transition;
+    align-self: center;
+
+    &:hover:not(:disabled) {
+      background: $color-accent;
+      color: #fff;
+      border-color: $color-accent;
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  }
+
+  &__pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid $color-secondary;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: $transition;
+
+    &:hover {
+      border-color: $color-accent;
+    }
+
+    &--active {
+      background: $color-accent;
+      border-color: $color-accent;
+    }
+  }
+
+  @media (max-width: 768px) {
+    &__btn {
+      width: 32px;
+      font-size: 1.2rem;
+    }
+
+    &__slide {
+      gap: 0.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    &__btn {
+      display: none;
+    }
+
+    &__slide {
+      grid-template-columns: 1fr !important;
+    }
+  }
+}
