@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { getBeans, deleteBean } from "../services/api";
 import "./BeanList.scss";
 
 export default function BeanList() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [beans, setBeans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,7 +47,7 @@ export default function BeanList() {
     <div className="page container">
       <div className="page-header">
         <h1>All Beans</h1>
-        <Link to="/beans/new" className="btn btn-primary">+ Add Bean</Link>
+        {isAdmin && <Link to="/beans/new" className="btn btn-primary">+ Add Bean</Link>}
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -54,7 +57,7 @@ export default function BeanList() {
           <div className="empty-state">
             <h2>No beans yet</h2>
             <p>Start your coffee journey by adding your first bean.</p>
-            <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>
+            {isAdmin && <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>}
           </div>
         </div>
       ) : (
@@ -75,17 +78,19 @@ export default function BeanList() {
                     <div className="bean-card__notes">{bean.tastingNotes}</div>
                   )}
                 </div>
-                <div className="bean-card__actions">
-                  <Link to={`/beans/${bean.id}/edit`} className="btn btn-outline btn-sm">
-                    Edit
-                  </Link>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(bean.id, bean.beanName)}
-                  >
-                    Delete
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="bean-card__actions">
+                    <Link to={`/beans/${bean.id}/edit`} className="btn btn-outline btn-sm">
+                      Edit
+                    </Link>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(bean.id, bean.beanName)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

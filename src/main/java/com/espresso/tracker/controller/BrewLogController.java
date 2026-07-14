@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class BrewLogController {
 
     @PostMapping
     @Operation(summary = "Log a new brew", description = "Logs a new espresso extraction tied to a specific bean.")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BrewLogResponseDTO> logBrew(@Valid @RequestBody BrewLogRequestDTO requestDTO) {
         BrewLogResponseDTO loggedBrew = brewLogService.createBrewLog(requestDTO);
         return new ResponseEntity<>(loggedBrew, HttpStatus.CREATED);

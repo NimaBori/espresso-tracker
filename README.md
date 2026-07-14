@@ -1,6 +1,6 @@
 # Espresso & Bean Extraction API
 
-A comprehensive backend API to track specialty coffee beans and espresso extraction parameters, built with Spring Boot and MySQL.
+A comprehensive backend API to track specialty coffee beans and espresso extraction parameters, built with Spring Boot and MySQL, with a React frontend.
 
 > 📘 **For a complete deep-dive into the project architecture, configuration, and all components, see [`BOILERPLATE.md`](./BOILERPLATE.md).**
 
@@ -13,12 +13,14 @@ A comprehensive backend API to track specialty coffee beans and espresso extract
 - **Migrations**: Flyway
 - **API Docs**: Swagger UI / OpenAPI (springdoc-openapi)
 - **Build Tool**: Maven 3.9+
+- **Frontend**: React 19 + Vite 8
 
 ## Quick Start
 
 ### Prerequisites
 - Java 21+
 - Maven 3.8+
+- Node.js 18+
 - MySQL running on port 3307 (via Homebrew)
 
 ### 1. Start MySQL
@@ -31,7 +33,7 @@ brew services start mysql
 mysql -h 127.0.0.1 -P 3307 -u root -p'2264' -e "CREATE DATABASE IF NOT EXISTS espresso_tracker;"
 ```
 
-### 3. Run the Application
+### 3. Run the Backend
 ```bash
 mvn clean install
 mvn spring-boot:run
@@ -39,23 +41,22 @@ mvn spring-boot:run
 
 The server starts on **http://localhost:9090**.
 
-### 4. Seed a User (Required for Authentication)
-
-All endpoints except login are protected. You need to insert at least one user into the database first:
-
-```sql
-INSERT INTO users (id, username, email, password, role)
-VALUES (
-  UUID_TO_BIN(UUID()),
-  'admin',
-  'admin@espresso.com',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-  'ADMIN'
-);
+### 4. Run the Frontend
+```bash
+cd frontend
+npm install
+npm run dev
 ```
-> Password for the above hash is **`admin123`**. Generate your own BCrypt hash at [bcrypt-generator.com](https://bcrypt-generator.com/).
 
-### 5. Get a Token & Verify
+The frontend starts on **http://localhost:5173** and proxies API requests to the backend.
+
+### 5. Default Admin User
+
+Flyway migration V4 automatically seeds the following admin user:
+- **Username:** `admin`
+- **Password:** `admin123`
+
+### 6. Get a Token & Verify
 ```bash
 # Login to get a JWT token
 TOKEN=$(curl -s -X POST http://localhost:9090/api/v1/auth/login \
@@ -85,7 +86,7 @@ No additional setup needed — the Swagger UI is auto-generated from the code an
 
 All endpoints are prefixed with `/api/v1/`.
 
-> 🔒 **Authentication**: All endpoints except `/api/v1/auth/login` require a JWT token. Include it as:
+> 🔒 **Authentication**: All endpoints except `/api/v1/auth/login` and `/api/v1/auth/register` require a JWT token. Include it as:
 > ```
 > Authorization: Bearer <your-token>
 > ```
@@ -94,6 +95,7 @@ All endpoints are prefixed with `/api/v1/`.
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/api/v1/auth/login` | Authenticate user, returns JWT token | No |
+| POST | `/api/v1/auth/register` | Create a new user account (USER role) | No |
 
 ### Beans
 | Method | Endpoint | Description | Required Role |
@@ -107,23 +109,44 @@ All endpoints are prefixed with `/api/v1/`.
 ### Brew Logs
 | Method | Endpoint | Description | Required Role |
 |--------|----------|-------------|---------------|
-| POST | `/api/v1/brew-logs` | Log a new brew extraction | Authenticated |
 | GET | `/api/v1/brew-logs/bean/{beanId}` | Get brew logs for a specific bean | Authenticated |
 | GET | `/api/v1/brew-logs/top-rated` | Get brews rated 4-5 stars | Authenticated |
+| POST | `/api/v1/brew-logs` | Log a new brew extraction | ADMIN |
 
 ## Security
 
-This project uses **JWT (JSON Web Token)** authentication with **Spring Security**. Two roles are defined:
+This project uses **JWT (JSON Web Token)** authentication with **Spring Security** and **method-level authorization**. Two roles are defined:
 
-- **`USER`** — Can read beans and manage brew logs (create, read)
-- **`ADMIN`** — Full access: can create, update, and delete beans in addition to everything a USER can do
+- **`USER`** — Read-only access: can view beans and brew logs
+- **`ADMIN`** — Full access: can create, update, and delete beans, and log brew extractions
 
 ### Authentication Flow
 
-1. **Login** — Send `POST /api/v1/auth/login` with `{"username": "...", "password": "..."}` → receive a JWT token
-2. **Authenticate requests** — Include the token in every request header: `Authorization: Bearer <token>`
-3. **Token validation** — The `JwtAuthenticationFilter` extracts and validates the token on every request, sets the security context
-4. **Role enforcement** — Spring Security checks the user's role (USER/ADMIN) against endpoint security rules
+1. **Register** — Send `POST /api/v1/auth/register` with `{"username": "...", "email": "...", "password": "..."}` to create an account (USER role)
+2. **Login** — Send `POST /api/v1/auth/login` with `{"username": "...", "password": "..."}` → receive a JWT token
+3. **Authenticate requests** — Include the token in every request header: `Authorization: Bearer <token>`
+4. **Token validation** — The `JwtAuthenticationFilter` extracts and validates the token on every request, sets the security context
+5. **Role enforcement** — Spring Security's `@PreAuthorize("hasRole('ADMIN')")` checks the user's role against endpoint security rules
+
+### Role-Based Access Matrix
+
+| Endpoint | Method | USER | ADMIN |
+|----------|--------|------|-------|
+| `/api/v1/auth/login` | POST | ✅ | ✅ |
+| `/api/v1/auth/register` | POST | ✅ | ✅ |
+| `/api/v1/beans` | GET | ✅ | ✅ |
+| `/api/v1/beans/{id}` | GET | ✅ | ✅ |
+| `/api/v1/beans` | POST | ❌ 403 | ✅ |
+| `/api/v1/beans/{id}` | PUT | ❌ 403 | ✅ |
+| `/api/v1/beans/{id}` | DELETE | ❌ 403 | ✅ |
+| `/api/v1/brew-logs/bean/{beanId}` | GET | ✅ | ✅ |
+| `/api/v1/brew-logs/top-rated` | GET | ✅ | ✅ |
+| `/api/v1/brew-logs` | POST | ❌ 403 | ✅ |
+
+### Frontend Role-Based UI
+
+- **Admin users** see all navigation links (+ Add Bean), Edit/Delete buttons on beans, Log Brew buttons, and an "Admin" badge in the header
+- **Regular users** see only Dashboard and Beans navigation. No write/delete actions are displayed — the UI is view-only
 
 ### Testing with curl
 
@@ -144,7 +167,12 @@ curl -X POST http://localhost:9090/api/v1/beans \
 
 # 4. Without token (403 Forbidden)
 curl http://localhost:9090/api/v1/beans
+
+# 5. Register a new user
+curl -X POST http://localhost:9090/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","email":"new@example.com","password":"password123"}'
 ```
 
 ## Architecture
-This project follows an N-Tier architecture (Controller, Service, Repository) with Flyway-managed database migrations, JWT-based authentication, and Swagger-based API documentation. See [`BOILERPLATE.md`](./BOILERPLATE.md) for a detailed breakdown of every component.
+This project follows an N-Tier architecture (Controller, Service, Repository) with Flyway-managed database migrations, JWT-based authentication, role-based authorization, and Swagger-based API documentation. See [`BOILERPLATE.md`](./BOILERPLATE.md) for a detailed breakdown of every component.

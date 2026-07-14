@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { getBeanById, getLogsByBeanId, deleteBean } from "../services/api";
 import "./BeanDetail.scss";
 
@@ -12,6 +13,8 @@ function formatTime(seconds) {
 export default function BeanDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [bean, setBean] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,11 +58,13 @@ export default function BeanDetail() {
       <div className="bean-detail">
         <div className="bean-detail__header">
           <Link to="/beans" className="btn btn-outline btn-sm">&larr; Back to Beans</Link>
-          <div className="bean-detail__actions">
-            <Link to={`/beans/${id}/edit`} className="btn btn-outline btn-sm">Edit</Link>
-            <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-secondary btn-sm">Log Brew</Link>
-            <button className="btn btn-danger btn-sm" onClick={handleDelete}>Delete</button>
-          </div>
+          {isAdmin && (
+            <div className="bean-detail__actions">
+              <Link to={`/beans/${id}/edit`} className="btn btn-outline btn-sm">Edit</Link>
+              <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-secondary btn-sm">Log Brew</Link>
+              <button className="btn btn-danger btn-sm" onClick={handleDelete}>Delete</button>
+            </div>
+          )}
         </div>
 
         <div className="card bean-detail__info">
@@ -93,9 +98,11 @@ export default function BeanDetail() {
         <div className="bean-detail__logs">
           <div className="bean-detail__logs-header">
             <h2>Brew Logs ({logs.length})</h2>
-            <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-primary btn-sm">
-              + Log New Brew
-            </Link>
+            {isAdmin && (
+              <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-primary btn-sm">
+                + Log New Brew
+              </Link>
+            )}
           </div>
 
           {logs.length === 0 ? (
@@ -103,9 +110,11 @@ export default function BeanDetail() {
               <div className="empty-state">
                 <h2>No brew logs yet</h2>
                 <p>Start logging extractions for this bean.</p>
-                <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-primary">
-                  Log Your First Brew
-                </Link>
+                {isAdmin && (
+                  <Link to={`/brew-log/new?beanId=${id}`} className="btn btn-primary">
+                    Log Your First Brew
+                  </Link>
+                )}
               </div>
             </div>
           ) : (

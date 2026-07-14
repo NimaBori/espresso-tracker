@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { getBeans, getTopRatedLogs } from "../services/api";
 import Slider from "../components/Slider";
 import BeanCard from "../components/BeanCard";
@@ -7,6 +8,8 @@ import BrewCard from "../components/BrewCard";
 import "./Dashboard.scss";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [beans, setBeans] = useState([]);
   const [topRatedLogs, setTopRatedLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,10 +40,12 @@ export default function Dashboard() {
     <div className="page container">
       <div className="page-header">
         <h1>Dashboard</h1>
-        <div className="page-header__actions">
-          <Link to="/beans/new" className="btn btn-primary">+ Add Bean</Link>
-          <Link to="/brew-log/new" className="btn btn-secondary">+ Log Brew</Link>
-        </div>
+        {isAdmin && (
+          <div className="page-header__actions">
+            <Link to="/beans/new" className="btn btn-primary">+ Add Bean</Link>
+            <Link to="/brew-log/new" className="btn btn-secondary">+ Log Brew</Link>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -50,7 +55,7 @@ export default function Dashboard() {
         {beans.length === 0 ? (
           <div className="empty-state">
             <p>No beans yet. Start by adding your first coffee bean!</p>
-            <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>
+            {isAdmin && <Link to="/beans/new" className="btn btn-primary">Add Your First Bean</Link>}
           </div>
         ) : (
           beans.map((bean) => <BeanCard key={bean.id} bean={bean} />)
@@ -62,7 +67,7 @@ export default function Dashboard() {
         {topRatedLogs.length === 0 ? (
           <div className="empty-state">
             <p>No brew logs yet. Log your first espresso extraction!</p>
-            <Link to="/brew-log/new" className="btn btn-secondary">Log a Brew</Link>
+            {isAdmin && <Link to="/brew-log/new" className="btn btn-secondary">Log a Brew</Link>}
           </div>
         ) : (
           topRatedLogs.map((log) => <BrewCard key={log.id} brew={log} />)

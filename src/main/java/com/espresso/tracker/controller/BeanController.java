@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -42,6 +43,7 @@ public class BeanController {
 
     @PostMapping
     @Operation(summary = "Add a new bean", description = "Adds a new bag of coffee beans to the inventory.")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BeanResponseDTO> createBean(@Valid @RequestBody BeanRequestDTO requestDTO) {
         BeanResponseDTO createdBean = beanService.createBean(requestDTO);
         return new ResponseEntity<>(createdBean, HttpStatus.CREATED);
@@ -49,12 +51,15 @@ public class BeanController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a bean", description = "Updates details for an existing coffee bean.")
-    public ResponseEntity<BeanResponseDTO> updateBean(@PathVariable UUID id, @Valid @RequestBody BeanRequestDTO requestDTO) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BeanResponseDTO> updateBean(@PathVariable UUID id,
+            @Valid @RequestBody BeanRequestDTO requestDTO) {
         return ResponseEntity.ok(beanService.updateBean(id, requestDTO));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a bean", description = "Soft deletes a coffee bean by setting its active status to false.")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteBean(@PathVariable UUID id) {
         beanService.softDeleteBean(id);
         return ResponseEntity.noContent().build();

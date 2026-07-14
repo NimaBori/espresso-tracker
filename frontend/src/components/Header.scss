@@ -63,6 +63,24 @@
     }
   }
 
+  &__auth {
+    display: flex;
+    align-items: center;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__user-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+
   @media (max-width: 600px) {
     &__inner {
       flex-direction: column;

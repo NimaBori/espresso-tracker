@@ -1,6 +1,6 @@
 # Espresso-Tracker — Boilerplate Guide
 
-This document explains the architecture, configuration, and key components of this Spring Boot project. Use it as a reference for understanding how everything fits together.
+This document explains the architecture, configuration, and key components of this Spring Boot project with its React frontend. Use it as a reference for understanding how everything fits together.
 
 ---
 
@@ -15,13 +15,18 @@ This document explains the architecture, configuration, and key components of th
 7. [Swagger / OpenAPI Documentation](#swagger--openapi-documentation)
 8. [Service & Repository Layer](#service--repository-layer)
 9. [Exception Handling](#exception-handling)
-10. [Build & Run](#build--run)
+10. [JWT Authentication & Security](#jwt-authentication--security)
+11. [Frontend Authentication](#frontend-authentication)
+12. [Build & Run](#build--run)
 
 ---
 
 ## Project Overview
 
-A backend API for tracking specialty coffee beans and espresso extraction parameters. Users can manage an inventory of coffee beans and log espresso brew extractions with detailed parameters (dose, yield, extraction time, rating, etc.).
+A full-stack application for tracking specialty coffee beans and espresso extraction parameters. Users can manage an inventory of coffee beans and log espresso brew extractions with detailed parameters (dose, yield, extraction time, rating, etc.).
+
+- **Backend**: Spring Boot REST API with JWT authentication and role-based authorization
+- **Frontend**: React SPA with protected routes and role-based UI rendering
 
 ---
 
@@ -38,6 +43,9 @@ A backend API for tracking specialty coffee beans and espresso extraction parame
 | API Documentation     | Swagger UI / OpenAPI 3.0 (springdoc-openapi) |
 | Build Tool            | Maven 3.9+                           |
 | DTO Mapping           | Manual (Lombok for boilerplate)      |
+| Frontend              | React 19 + Vite 8                    |
+| Frontend HTTP Client  | Axios                                |
+| Routing               | React Router v7                      |
 
 ---
 
@@ -48,49 +56,72 @@ Espresso-Tracker/
 ├── BOILERPLATE.md                  ← You are here
 ├── README.md
 ├── pom.xml                         ← Maven dependencies & plugins
-├── src/
-│   ├── main/
-│   │   ├── java/com/espresso/tracker/
-│   │   │   ├── TrackerApplication.java         ← Entry point
-│   │   │   ├── config/                         ← Security & app configuration
-│   │   │   │   └── SecurityConfig.java
-│   │   │   ├── controller/                     ← REST controllers
-│   │   │   │   ├── AuthController.java
-│   │   │   │   ├── BeanController.java
-│   │   │   │   └── BrewLogController.java
-│   │   │   ├── dto/                            ← Request/Response DTOs
-│   │   │   │   ├── BeanRequestDTO.java
-│   │   │   │   ├── BeanResponseDTO.java
-│   │   │   │   ├── BrewLogRequestDTO.java
-│   │   │   │   ├── BrewLogResponseDTO.java
-│   │   │   │   ├── LoginRequest.java
-│   │   │   │   └── LoginResponse.java
-│   │   │   ├── entity/                         ← JPA entities
-│   │   │   │   ├── Bean.java
-│   │   │   │   ├── BrewLog.java
-│   │   │   │   ├── RoastLevel.java             ← ENUM
-│   │   │   │   ├── Role.java                   ← ENUM
-│   │   │   │   └── User.java
-│   │   │   ├── exception/                      ← Global error handling
-│   │   │   │   ├── GlobalExceptionHandler.java
-│   │   │   │   └── ResourceNotFoundException.java
-│   │   │   ├── repository/                     ← Spring Data JPA repos
-│   │   │   │   ├── BeanRepository.java
-│   │   │   │   ├── BrewLogRepository.java
-│   │   │   │   └── UserRepository.java
-│   │   │   ├── security/                       ← JWT & auth components
-│   │   │   │   ├── CustomUserDetailsService.java
-│   │   │   │   ├── JwtAuthenticationFilter.java
-│   │   │   │   └── JwtService.java
-│   │   │   └── service/                        ← Business logic
-│   │   │       ├── BeanService.java
-│   │   │       └── BrewLogService.java
-│   │   └── resources/
-│   │       ├── application.properties          ← App configuration
-│   │       └── db/migration/
-│   │           ├── V1__init_schema.sql         ← Flyway migration
-│   │           └── V2__add_users_table.sql     ← Flyway migration
-│   └── test/java/com/espresso/tracker/
+├── frontend/                       ← React SPA
+│   ├── package.json
+│   ├── vite.config.js              ← Vite config (proxy /api → localhost:9090)
+│   └── src/
+│       ├── main.jsx                ← Entry point (BrowserRouter + AuthProvider)
+│       ├── App.jsx                 ← Routes (public + protected)
+│       ├── context/
+│       │   └── AuthContext.jsx     ← Global auth state (token, user, role)
+│       ├── services/
+│       │   └── api.js              ← Axios instance + JWT interceptor + API calls
+│       ├── components/
+│       │   ├── Header.jsx          ← Nav bar with role-based links
+│       │   ├── ProtectedRoute.jsx  ← Redirects unauthenticated users to /login
+│       │   └── ...
+│       └── pages/
+│           ├── LoginPage.jsx       ← Sign-in form
+│           ├── RegisterPage.jsx    ← Registration form
+│           ├── Dashboard.jsx       ← Admin: shows add buttons; User: view-only
+│           ├── BeanList.jsx        ← Admin: edit/delete; User: view-only
+│           ├── BeanDetail.jsx      ← Admin: edit/log/delete; User: view-only
+│           └── ...
+src/
+├── main/
+│   ├── java/com/espresso/tracker/
+│   │   ├── TrackerApplication.java             ← Entry point
+│   │   ├── config/                             ← Security & app configuration
+│   │   │   └── SecurityConfig.java
+│   │   ├── controller/                         ← REST controllers
+│   │   │   ├── AuthController.java
+│   │   │   ├── BeanController.java
+│   │   │   └── BrewLogController.java
+│   │   ├── dto/                                ← Request/Response DTOs
+│   │   │   ├── BeanRequestDTO.java
+│   │   │   ├── BeanResponseDTO.java
+│   │   │   ├── BrewLogRequestDTO.java
+│   │   │   ├── BrewLogResponseDTO.java
+│   │   │   ├── LoginRequest.java
+│   │   │   ├── LoginResponse.java
+│   │   │   └── RegisterRequest.java
+│   │   ├── entity/                             ← JPA entities
+│   │   │   ├── Bean.java
+│   │   │   ├── BrewLog.java
+│   │   │   ├── RoastLevel.java                 ← ENUM
+│   │   │   ├── Role.java                       ← ENUM (USER, ADMIN)
+│   │   │   └── User.java
+│   │   ├── exception/                          ← Global error handling
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   └── ResourceNotFoundException.java
+│   │   ├── repository/                         ← Spring Data JPA repos
+│   │   │   ├── BeanRepository.java
+│   │   │   ├── BrewLogRepository.java
+│   │   │   └── UserRepository.java
+│   │   ├── security/                           ← JWT & auth components
+│   │   │   ├── CustomUserDetailsService.java
+│   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   └── JwtService.java
+│   │   └── service/                            ← Business logic
+│   │       ├── BeanService.java
+│   │       └── BrewLogService.java
+│   └── resources/
+│       ├── application.properties              ← App configuration
+│       └── db/migration/
+│           ├── V1__init_schema.sql             ← Beans + brew_logs tables
+│           ├── V2__add_users_table.sql         ← Users table
+│           ├── V3__fix_users_role_enum.sql     ← Fix role column type
+│           └── V4__seed_admin_user.sql         ← Seed default admin user
 └── pom.xml
 ```
 
@@ -135,7 +166,7 @@ jwt.secret=dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGtleSBmb3IgZXNwcmVzc28gdHJhY2tlciBhcHBsa
 jwt.expiration-ms=86400000
 ```
 
-- `jwt.secret` — Base64-encoded HMAC-SHA256 key used to sign and verify JWT tokens. **Replace with a strong, unique secret in production.**
+- `jwt.secret` — Base64-encoded HMAC-SHA384 key used to sign and verify JWT tokens. **Replace with a strong, unique secret in production.**
 - `jwt.expiration-ms` — Token lifetime in milliseconds. Default is `86400000` (24 hours).
 
 ---
@@ -170,29 +201,47 @@ Creates two tables:
 
 Creates the `users` table for authentication:
 
-- **`users`** — Application users:
-  - `id` (BINARY(16) UUID, primary key)
-  - `username` (VARCHAR 50, unique, not null)
-  - `email` (VARCHAR 100, unique, not null)
-  - `password` (VARCHAR 255, not null — BCrypt-encoded)
-  - `role` (VARCHAR 20, default `'USER'`) — either `USER` or `ADMIN`
-  - `created_at`, `updated_at`
+```sql
+CREATE TABLE users (
+    id BINARY(16) NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at DATETIME,
+    updated_at DATETIME,
+    PRIMARY KEY (id)
+);
+```
+
+### Migration V3 — `V3__fix_users_role_enum.sql`
+
+Fixes the role column to use MySQL ENUM type matching the Java Role enum:
+
+```sql
+ALTER TABLE users
+MODIFY COLUMN role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER';
+```
+
+### Migration V4 — `V4__seed_admin_user.sql`
+
+Seeds the default admin user so authentication works out of the box:
+
+```sql
+INSERT INTO users (id, username, email, password, role)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-7890-abcd-ef1234567890'), 'admin', 'admin@espresso.com',
+       '$2a$10$...', 'ADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
+```
+
+- **Username:** `admin`
+- **Password:** `admin123`
 
 ### Adding a New Migration
 
-1. Create a file named `V3__description.sql` in `src/main/resources/db/migration/`.
+1. Create a file named `V5__description.sql` in `src/main/resources/db/migration/`.
 2. Write your SQL (ALTER TABLE, CREATE TABLE, etc.).
 3. Restart the app — Flyway will apply it automatically.
-
-### Important: ENUM vs VARCHAR
-
-The `roast_level` column uses MySQL's `ENUM` type because the Java entity uses:
-```java
-@Enumerated(EnumType.STRING)
-private RoastLevel roastLevel;
-```
-
-If you change the migration, you must also update the Java enum or vice versa. Otherwise Hibernate validation (`ddl-auto=validate`) will fail with a schema mismatch error.
 
 ---
 
@@ -204,93 +253,28 @@ All endpoints are prefixed with `/api/v1/`.
 
 ### Authentication API (`AuthController`)
 
-| Method | Endpoint              | Description                            | Status Codes               |
-|--------|-----------------------|----------------------------------------|----------------------------|
-| POST   | `/api/v1/auth/login`  | Authenticate user, returns JWT token   | 200 OK, 401 Unauthorized, 400 Bad Request |
+| Method | Endpoint | Description | Status Codes |
+|--------|----------|-------------|--------------|
+| POST | `/api/v1/auth/login` | Authenticate user, returns JWT token | 200 OK, 401 Unauthorized, 400 Bad Request |
+| POST | `/api/v1/auth/register` | Create a new user (USER role) | 201 Created, 400 Bad Request |
 
 ### Beans API (`BeanController`)
 
-| Method | Endpoint                | Description                          | Required Role    | Status Codes               |
-|--------|-------------------------|--------------------------------------|------------------|----------------------------|
-| GET    | `/api/v1/beans`         | List all active beans (paginated)    | Authenticated    | 200 OK                     |
-| GET    | `/api/v1/beans/{id}`    | Get a bean by UUID                   | Authenticated    | 200 OK, 404 Not Found      |
-| POST   | `/api/v1/beans`         | Add a new coffee bean                | ADMIN            | 201 Created, 400 Bad Request |
-| PUT    | `/api/v1/beans/{id}`    | Update an existing bean              | ADMIN            | 200 OK, 404 Not Found      |
-| DELETE | `/api/v1/beans/{id}`    | Soft-delete (sets is_active=false)   | ADMIN            | 204 No Content, 404 Not Found |
+| Method | Endpoint | Description | Required Role | Status Codes |
+|--------|----------|-------------|---------------|--------------|
+| GET | `/api/v1/beans` | List all active beans (paginated) | Authenticated | 200 OK |
+| GET | `/api/v1/beans/{id}` | Get a bean by UUID | Authenticated | 200 OK, 404 Not Found |
+| POST | `/api/v1/beans` | Add a new coffee bean | ADMIN | 201 Created, 400 Bad Request |
+| PUT | `/api/v1/beans/{id}` | Update an existing bean | ADMIN | 200 OK, 404 Not Found |
+| DELETE | `/api/v1/beans/{id}` | Soft-delete (sets is_active=false) | ADMIN | 204 No Content, 404 Not Found |
 
 ### Brew Logs API (`BrewLogController`)
 
-| Method | Endpoint                         | Description                               | Required Role    | Status Codes          |
-|--------|----------------------------------|-------------------------------------------|------------------|-----------------------|
-| POST   | `/api/v1/brew-logs`              | Log a new brew extraction                 | Authenticated    | 201 Created           |
-| GET    | `/api/v1/brew-logs/bean/{beanId}` | Get all brew logs for a specific bean    | Authenticated    | 200 OK                |
-| GET    | `/api/v1/brew-logs/top-rated`     | Get brew logs with rating 4 or 5         | Authenticated    | 200 OK                |
-
-### Example: Login (Get JWT Token)
-
-```bash
-curl -X POST http://localhost:9090/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "admin123"
-  }'
-```
-
-Response: `200 OK`
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbiIsImlhdCI6MTc1MDAwMDAwMCwiZXhwIjoxNzUwMDg2NDAwfQ...",
-  "username": "admin",
-  "role": "ADMIN"
-}
-```
-
-### Example: Creating a Bean (with JWT)
-
-```bash
-curl -X POST http://localhost:9090/api/v1/beans \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -d '{
-    "roasterName": "Stumptown",
-    "beanName": "Hair Bender",
-    "origin": "Ethiopia",
-    "roastLevel": "MEDIUM",
-    "tastingNotes": "Chocolate, citrus"
-  }'
-```
-
-Response: `201 Created`
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "roasterName": "Stumptown",
-  "beanName": "Hair Bender",
-  "origin": "Ethiopia",
-  "roastLevel": "MEDIUM",
-  "tastingNotes": "Chocolate, citrus",
-  "isActive": true,
-  "createdAt": "2026-07-02T08:30:00"
-}
-```
-
-### Example: Logging a Brew (with JWT)
-
-```bash
-curl -X POST http://localhost:9090/api/v1/brew-logs \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -d '{
-    "beanId": "550e8400-e29b-41d4-a716-446655440000",
-    "doseGrams": 18.0,
-    "yieldGrams": 36.0,
-    "extractionTimeSeconds": 30,
-    "grindSetting": "3.5 on Baratza Encore",
-    "rating": 4,
-    "notes": "Sweet and balanced"
-  }'
-```
+| Method | Endpoint | Description | Required Role | Status Codes |
+|--------|----------|-------------|---------------|--------------|
+| GET | `/api/v1/brew-logs/bean/{beanId}` | Get all brew logs for a specific bean | Authenticated | 200 OK |
+| GET | `/api/v1/brew-logs/top-rated` | Get brew logs with rating 4 or 5 | Authenticated | 200 OK |
+| POST | `/api/v1/brew-logs` | Log a new brew extraction | ADMIN | 201 Created |
 
 ---
 
@@ -374,143 +358,304 @@ Business logic lives in service classes:
 
 **`GlobalExceptionHandler`** uses `@ControllerAdvice` to catch exceptions globally:
 
-| Exception                        | HTTP Status | Response Body              |
-|----------------------------------|-------------|----------------------------|
-| `ResourceNotFoundException`      | 404         | `{ "error": "Not Found", "message": "...", "timestamp": "...", "status": 404 }` |
-| `MethodArgumentNotValidException`| 400         | Field-level validation errors |
-| `Exception` (catch-all)          | 500         | Generic error message      |
+| Exception | HTTP Status | Response Body |
+|-----------|-------------|---------------|
+| `ResourceNotFoundException` | 404 | `{ "error": "Not Found", "message": "...", "timestamp": "...", "status": 404 }` |
+| `MethodArgumentNotValidException` | 400 | Field-level validation errors |
+| `BadCredentialsException` | 401 | `{ "message": "Invalid username or password" }` |
+| `Exception` (catch-all) | 500 | Generic error message |
 
 ---
 
 ## JWT Authentication & Security
 
-This section explains how Spring Security and JWT authentication work in this project.
+This section explains how Spring Security, JWT authentication, and role-based authorization work in this project.
 
-### Authentication Flow
+### Authentication & Authorization Flow
 
 ```
-┌──────────┐         ┌──────────────────┐         ┌──────────┐
-│  Client  │ ──POST──▶  /api/v1/auth/   │ ──────▶  │  DB:     │
-│ (curl/   │   login  │  login           │  verify  │  users   │
-│  Swagger)│         │                  │  creds   │  table   │
-└────┬─────┘         └────────┬─────────┘         └──────────┘
-     │                        │
-     │                        │ Returns JWT token
-     │                        ▼
-     │              ┌──────────────────┐
-     │              │  Client saves    │
-     │              │  the token       │
-     │              └──────────────────┘
-     │
-     │ ──GET /api/v1/beans ──┐
-     │   Authorization:       │
-     │   Bearer <token>       │
-     │                        ▼
-     │              ┌──────────────────┐
-     │              │ JwtAuthFilter    │
-     │              │ • extracts token │
-     │              │ • validates sig  │
-     │              │ • loads user     │
-     │              └────────┬─────────┘
-     │                       │
-     │                       ▼
-     │              ┌──────────────────┐
-     │              │ SecurityContext  │
-     │              │ holds auth info  │
-     │              └────────┬─────────┘
-     │                       │
-     │                       ▼
-     │              ┌──────────────────┐
-     │              │ Controller       │
-     │              │ (authenticated)  │
-     │              └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  REGISTER                                                           │
+│  POST /api/v1/auth/register                                         │
+│  { username, email, password } → Hash password → Save to DB → 201  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  LOGIN                                                              │
+│  POST /api/v1/auth/login                                            │
+│  { username, password } → Authenticate → Generate JWT → Return      │
+│  { token, username, role }                                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  AUTHENTICATED REQUEST                                              │
+│  GET /api/v1/beans                                                  │
+│  Header: Authorization: Bearer <token>                              │
+│    │                                                                 │
+│    ▼                                                                 │
+│  JwtAuthenticationFilter                                            │
+│    │ 1. Extract token from header                                   │
+│    │ 2. Validate signature (HMAC-SHA384)                            │
+│    │ 3. Check expiration                                            │
+│    │ 4. Extract username from token                                 │
+│    ▼                                                                 │
+│  CustomUserDetailsService.loadUserByUsername(username)              │
+│    │ Load user from DB + create UserDetails with GrantedAuthority   │
+│    ▼                                                                 │
+│  SecurityContextHolder.setAuthentication(authToken)                 │
+│    ▼                                                                 │
+│  Controller                                                         │
+│    │ @PreAuthorize("hasRole('ADMIN')") → checks role claim          │
+│    │ If unauthorized → 403 Forbidden                                │
+│    ▼                                                                 │
+│  Response to client                                                  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### How Each Component Works
+### Security Components
 
-#### 1. User Registration (Manual / Seed Data)
-There is no registration endpoint built in. Users are inserted directly into the `users` table with a BCrypt-encoded password. Two roles are supported:
+#### 1. `SecurityConfig.java`
 
-- **`USER`** — Can read beans, read/write brew logs
-- **`ADMIN`** — Can do everything including create/update/delete beans
+**`@EnableMethodSecurity`** enables `@PreAuthorize` annotations on controller methods.
 
-**Example: Insert a test user (run after starting the app & running Flyway migration V2):**
-```sql
-INSERT INTO users (id, username, email, password, role)
-VALUES (
-  UUID_TO_BIN(UUID()),
-  'admin',
-  'admin@espresso.com',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-  'ADMIN'
-);
+Security rules:
+```java
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/v1/auth/**").permitAll()        // Login & register — public
+    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()  // Swagger — public
+    .requestMatchers("/api/v1/beans/**").authenticated()   // Beans — any logged-in user
+    .requestMatchers("/api/v1/brew-logs/**").authenticated() // Brew logs — any logged-in user
+    .anyRequest().authenticated())
 ```
 
-To generate a BCrypt password for your own user, use this one-liner:
-```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--bcrypt=mypassword"
+- CSRF disabled (stateless JWT)
+- Stateless session management
+- `JwtAuthenticationFilter` registered before `UsernamePasswordAuthenticationFilter`
+
+#### 2. `JwtService.java`
+
+Creates and validates JWT tokens:
+
+| Method | Description |
+|--------|-------------|
+| `generateToken(username, extraClaims)` | Creates a signed JWT with subject (username), claims (role), issued-at, and expiration |
+| `extractUsername(token)` | Parses the token and returns the subject claim |
+| `isTokenValid(token)` | Verifies the HMAC signature and checks expiration date |
+
+Token structure:
+```json
+{
+  "sub": "admin",
+  "role": "ADMIN",
+  "iat": 1783992840,
+  "exp": 1784079240
+}
 ```
-Or generate one online at `https://bcrypt-generator.com/`.
 
-#### 2. `SecurityConfig`
-- **Disables CSRF** — The API uses stateless JWT, so CSRF is unnecessary.
-- **Stateless sessions** — No HTTP session is created; every request is authenticated individually via the JWT.
-- **Endpoint security rules:**
-  - `POST /api/v1/auth/login` — open to everyone
-  - Swagger UI paths — open to everyone
-  - `GET /api/v1/beans/**` — any authenticated user (USER or ADMIN)
-  - `POST/PUT/DELETE /api/v1/beans/**` — ADMIN only
-  - `/api/v1/brew-logs/**` — any authenticated user
-  - Any other request — authenticated
-- Registers `JwtAuthenticationFilter` before `UsernamePasswordAuthenticationFilter` in the filter chain.
+#### 3. `CustomUserDetailsService.java`
 
-#### 3. `JwtService`
-- Uses **HMAC-SHA256** with a Base64-encoded secret key from `application.properties`
-- `generateToken(username, extraClaims)` — creates a signed JWT with subject (username), issued-at, and expiration timestamps
-- `extractUsername(token)` — parses the token and returns the subject claim
-- `isTokenValid(token)` — verifies the signature and checks the expiration date
-
-#### 4. `CustomUserDetailsService`
 - Implements Spring Security's `UserDetailsService`
-- Looks up a user by username in the database
-- Returns a `UserDetails` object with the BCrypt password and granted authority (e.g., `ROLE_USER` or `ROLE_ADMIN`)
+- Looks up user by username in the `users` table
+- Returns a `UserDetails` with the BCrypt password and `ROLE_USER` or `ROLE_ADMIN` authority
 
-#### 5. `JwtAuthenticationFilter`
+#### 4. `JwtAuthenticationFilter.java`
+
 - Extends `OncePerRequestFilter` — runs once per request
-- Reads the `Authorization` header and looks for `Bearer <token>` format
-- Extracts the username from the token via `JwtService`
-- If the token is valid and no existing authentication exists, loads the `UserDetails` and sets `UsernamePasswordAuthenticationToken` in the `SecurityContextHolder`
-- If no valid token is present, the request continues unauthenticated (and Spring Security will deny access based on the security rules)
+- Reads `Authorization: Bearer <token>` header
+- Validates the token and sets the `SecurityContext`
+- If no token or invalid token, the request continues unauthenticated (filter chain)
 
-### Role-Based Access Summary
+#### 5. `@PreAuthorize` on Controllers
 
-| Role   | Beans (GET) | Beans (POST/PUT/DELETE) | Brew Logs | Login |
-|--------|-------------|-------------------------|-----------|-------|
-| USER   | ✅          | ❌                      | ✅        | ✅    |
-| ADMIN  | ✅          | ✅                      | ✅        | ✅    |
-| None   | ❌          | ❌                      | ❌        | ✅    |
+**`BeanController.java`:**
+```java
+@PostMapping
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<BeanResponseDTO> createBean(...)
+
+@PutMapping("/{id}")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<BeanResponseDTO> updateBean(...)
+
+@DeleteMapping("/{id}")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<Void> deleteBean(...)
+```
+
+**`BrewLogController.java`:**
+```java
+@PostMapping
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<BrewLogResponseDTO> logBrew(...)
+```
+
+GET endpoints in both controllers have no `@PreAuthorize` annotation — they rely on the `.authenticated()` rule from `SecurityConfig`, which allows any authenticated user regardless of role.
+
+#### 6. `Role.java` Enum
+
+```java
+public enum Role {
+    USER,    // Read-only access
+    ADMIN    // Full access
+}
+```
+
+### Role-Based Access Matrix
+
+| Endpoint | Method | USER | ADMIN |
+|----------|--------|------|-------|
+| `/api/v1/auth/login` | POST | ✅ | ✅ |
+| `/api/v1/auth/register` | POST | ✅ | ✅ |
+| `/api/v1/beans` | GET | ✅ | ✅ |
+| `/api/v1/beans/{id}` | GET | ✅ | ✅ |
+| `/api/v1/beans` | POST | ❌ 403 | ✅ |
+| `/api/v1/beans/{id}` | PUT | ❌ 403 | ✅ |
+| `/api/v1/beans/{id}` | DELETE | ❌ 403 | ✅ |
+| `/api/v1/brew-logs/bean/{beanId}` | GET | ✅ | ✅ |
+| `/api/v1/brew-logs/top-rated` | GET | ✅ | ✅ |
+| `/api/v1/brew-logs` | POST | ❌ 403 | ✅ |
+
+### User Registration Details
+
+**`AuthController.register()`:**
+1. Validates request (username 3-50 chars, email, password 6+ chars)
+2. Checks for duplicate username → 400 "Username already exists"
+3. Checks for duplicate email → 400 "Email already exists"
+4. Generates UUID, hashes password with BCrypt, sets `Role.USER`
+5. Saves to database → 201 "User registered successfully"
+
+**`RegisterRequest` DTO:**
+```java
+public record RegisterRequest(
+    @NotBlank @Size(min = 3, max = 50) String username,
+    @NotBlank @Email @Size(max = 100) String email,
+    @NotBlank @Size(min = 6, max = 100) String password) {}
+```
+
+### Default Admin User (Flyway V4)
+
+The seed migration creates an admin user automatically:
+- **Username:** `admin`
+- **Password:** `admin123` (BCrypt encoded)
+- **Email:** `admin@espresso.com`
+- **Role:** `ADMIN`
 
 ### Testing with curl
 
 ```bash
-# 1. Get a token (replace credentials with your seeded user)
+# 1. Register a new user
+curl -X POST http://localhost:9090/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","email":"new@example.com","password":"password123"}'
+
+# 2. Login as admin
 TOKEN=$(curl -s -X POST http://localhost:9090/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r '.token')
 
-# 2. Use the token to list beans (USER or ADMIN)
-curl http://localhost:9090/api/v1/beans \
-  -H "Authorization: Bearer $TOKEN"
+# 3. List beans (works for any authenticated user)
+curl http://localhost:9090/api/v1/beans -H "Authorization: Bearer $TOKEN"
 
-# 3. Create a bean (ADMIN only — will fail if token is from a USER role)
+# 4. Create a bean (ADMIN only)
 curl -X POST http://localhost:9090/api/v1/beans \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"roasterName":"Test","beanName":"Test Bean","origin":"Test","roastLevel":"MEDIUM"}'
+  -d '{"roasterName":"Stumptown","beanName":"Hair Bender","origin":"Ethiopia","roastLevel":"MEDIUM","tastingNotes":"Chocolate, citrus"}'
 
-# 4. Without token (will get 403 Forbidden)
+# 5. Without token (403 Forbidden)
 curl http://localhost:9090/api/v1/beans
 ```
+
+---
+
+## Frontend Authentication
+
+### Architecture Overview
+
+The frontend uses React Context for auth state management, Axios interceptors for automatic JWT attachment, and React Router for protected route handling.
+
+### 1. AuthContext (`frontend/src/context/AuthContext.jsx`)
+
+Provides global auth state to the entire React component tree:
+
+| Value | Description |
+|-------|-------------|
+| `user` | `{ token, username, role }` or `null` if not logged in |
+| `loading` | Boolean — true while checking localStorage on mount |
+| `login(token, username, role)` | Saves to localStorage + updates state |
+| `logout()` | Clears localStorage + sets user to null |
+
+### 2. Axios Interceptor (`frontend/src/services/api.js`)
+
+Attaches the JWT token to every outgoing request automatically:
+
+```javascript
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+API functions exported:
+- `login(username, password)` → POST `/auth/login`
+- `register(username, email, password)` → POST `/auth/register`
+- `getBeans()`, `getBeanById(id)`, `createBean(data)`, `updateBean(id, data)`, `deleteBean(id)`
+- `getLogsByBeanId(id)`, `getTopRatedLogs()`, `createBrewLog(data)`
+
+### 3. ProtectedRoute (`frontend/src/components/ProtectedRoute.jsx`)
+
+Wraps pages that require authentication:
+
+```jsx
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
+  return children;
+}
+```
+
+### 4. Role-Based UI Rendering
+
+Every page checks `user.role === "ADMIN"` to conditionally render admin-only UI elements:
+
+| Component | Admin Sees | Regular User Sees |
+|-----------|-----------|-------------------|
+| **Header** | Dashboard, Beans, + Add Bean, Admin badge, Logout | Dashboard, Beans, Sign In/Logout |
+| **Dashboard** | + Add Bean, + Log Brew buttons | View-only content |
+| **Bean List** | Edit, Delete buttons on each card | View-only grid |
+| **Bean Detail** | Edit, Log Brew, Delete action buttons | View-only info |
+
+### 5. Route Configuration (`frontend/src/App.jsx`)
+
+```jsx
+<Routes>
+  <Route path="/login" element={<LoginPage />} />         // Public
+  <Route path="/register" element={<RegisterPage />} />    // Public
+  <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />       // Protected
+  <Route path="/beans" element={<ProtectedRoute><BeanList /></ProtectedRoute>} />   // Protected
+  // ... all other routes are protected
+</Routes>
+```
+
+### 6. Vite Proxy (`frontend/vite.config.js`)
+
+```javascript
+server: {
+  port: 5173,
+  proxy: {
+    "/api": {
+      target: "http://localhost:9090",
+      changeOrigin: true,
+    },
+  },
+}
+```
+
+During development, all `/api` requests from the frontend are proxied to the backend on port 9090.
 
 ---
 
@@ -519,6 +664,7 @@ curl http://localhost:9090/api/v1/beans
 ### Prerequisites
 - Java 21+
 - Maven 3.8+
+- Node.js 18+
 - MySQL running on port 3307 (via Homebrew)
 
 ### Start MySQL
@@ -527,7 +673,7 @@ brew services start mysql
 # Verify: brew services info mysql → should show "Running: ✔"
 ```
 
-### Run the Application
+### Run the Backend
 ```bash
 mvn clean install
 mvn spring-boot:run
@@ -535,7 +681,22 @@ mvn spring-boot:run
 
 The app starts on `http://localhost:9090`.
 
+### Run the Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend starts on `http://localhost:5173`.
+
 ### Verify It's Working
 ```bash
+# Backend health check
 curl http://localhost:9090/api/v1/beans
 # Expected: {"content":[],"pageable":...,"totalElements":0,...}
+
+# Login (admin user is auto-seeded by Flyway V4)
+curl -X POST http://localhost:9090/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'

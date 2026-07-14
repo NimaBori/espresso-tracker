@@ -7,6 +7,24 @@ const api = axios.create({
   },
 });
 
+// Attach JWT token to every request if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Auth API
+export const login = (username, password) =>
+  api.post("/auth/login", { username, password }).then((res) => res.data);
+
+export const register = (username, email, password) =>
+  api
+    .post("/auth/register", { username, email, password })
+    .then((res) => res.data);
+
 // Beans API
 export const getBeans = (page = 0, size = 20) =>
   api.get(`/beans?page=${page}&size=${size}`).then((res) => res.data);

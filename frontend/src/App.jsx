@@ -1,11 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import BeanList from "./pages/BeanList";
 import BeanDetail from "./pages/BeanDetail";
 import BeanForm from "./pages/BeanForm";
 import BrewLogForm from "./pages/BrewLogForm";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 
 function App() {
   return (
@@ -13,12 +16,56 @@ function App() {
       <Header />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/beans" element={<BeanList />} />
-          <Route path="/beans/new" element={<BeanForm />} />
-          <Route path="/beans/:id" element={<BeanDetail />} />
-          <Route path="/beans/:id/edit" element={<BeanForm />} />
-          <Route path="/brew-log/new" element={<BrewLogForm />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/beans"
+            element={
+              <ProtectedRoute>
+                <BeanList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/beans/new"
+            element={
+              <ProtectedRoute>
+                <BeanForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/beans/:id"
+            element={
+              <ProtectedRoute>
+                <BeanDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/beans/:id/edit"
+            element={
+              <ProtectedRoute>
+                <BeanForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/brew-log/new"
+            element={
+              <ProtectedRoute>
+                <BrewLogForm />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
       <Footer />
