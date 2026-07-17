@@ -50,4 +50,20 @@ export const getTopRatedLogs = () =>
 export const createBrewLog = (logData) =>
   api.post("/brew-logs", logData).then((res) => res.data);
 
+// Analytics API
+export const getDashboardStats = () =>
+  api.get("/analytics/dashboard").then((res) => res.data);
+
+export const getTopBeans = (limit = 10) =>
+  api.get(`/analytics/top-beans?limit=${limit}`).then((res) => res.data);
+
+export const getTopBrews = (limit = 10) =>
+  api.get(`/analytics/top-brews?limit=${limit}`).then((res) => res.data);
+
+export const getGeoDistribution = () =>
+  api.get("/analytics/geo").then((res) => res.data);
+
+export const getVisitTrend = (days = 30) =>
+  api.get(`/analytics/trends?days=${days}`).then((res) => res.data);
+
 export default api;

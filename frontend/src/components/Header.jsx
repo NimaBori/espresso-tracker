@@ -40,14 +40,24 @@ export default function Header() {
                 Beans
               </NavLink>
               {isAdmin && (
-                <NavLink
-                  to="/beans/new"
-                  className={({ isActive }) =>
-                    isActive ? "header__link header__link--active" : "header__link"
-                  }
-                >
-                  + Add Bean
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/admin/analytics"
+                    className={({ isActive }) =>
+                      isActive ? "header__link header__link--active" : "header__link"
+                    }
+                  >
+                    Analytics
+                  </NavLink>
+                  <NavLink
+                    to="/beans/new"
+                    className={({ isActive }) =>
+                      isActive ? "header__link header__link--active" : "header__link"
+                    }
+                  >
+                    + Add Bean
+                  </NavLink>
+                </>
               )}
             </>
           )}

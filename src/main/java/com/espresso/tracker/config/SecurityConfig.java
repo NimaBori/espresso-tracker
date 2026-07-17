@@ -34,11 +34,14 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             // Auth endpoints (login, register)
             .requestMatchers("/api/v1/auth/**").permitAll()
+            // Analytics - visit recording is public (no auth)
+            .requestMatchers(HttpMethod.POST, "/api/v1/analytics/visit").permitAll()
             // Swagger / OpenAPI
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             // All other API endpoints require authentication
             .requestMatchers("/api/v1/beans/**").authenticated()
             .requestMatchers("/api/v1/brew-logs/**").authenticated()
+            .requestMatchers("/api/v1/analytics/**").authenticated()
             // Any other request
             .anyRequest().authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
