@@ -46,6 +46,8 @@ A full-stack application for tracking specialty coffee beans and espresso extrac
 | Frontend              | React 19 + Vite 8                    |
 | Frontend HTTP Client  | Axios                                |
 | Routing               | React Router v7                      |
+| Charts                | Recharts                             |
+| Geo-IP Resolution     | ip-api.com (free, no API key)        |
 
 ---
 
@@ -69,6 +71,7 @@ Espresso-Tracker/
 │       ├── components/
 │       │   ├── Header.jsx          ← Nav bar with role-based links
 │       │   ├── ProtectedRoute.jsx  ← Redirects unauthenticated users to /login
+│       │   ├── VisitTracker.jsx    ← Invisible component, tracks page visits via sendBeacon()
 │       │   └── ...
 │       └── pages/
 │           ├── LoginPage.jsx       ← Sign-in form
@@ -76,6 +79,7 @@ Espresso-Tracker/
 │           ├── Dashboard.jsx       ← Admin: shows add buttons; User: view-only
 │           ├── BeanList.jsx        ← Admin: edit/delete; User: view-only
 │           ├── BeanDetail.jsx      ← Admin: edit/log/delete; User: view-only
+│           ├── AnalyticsDashboard.jsx ← Admin-only analytics with charts
 │           └── ...
 src/
 ├── main/
@@ -84,10 +88,12 @@ src/
 │   │   ├── config/                             ← Security & app configuration
 │   │   │   └── SecurityConfig.java
 │   │   ├── controller/                         ← REST controllers
+│   │   │   ├── AnalyticsController.java
 │   │   │   ├── AuthController.java
 │   │   │   ├── BeanController.java
 │   │   │   └── BrewLogController.java
 │   │   ├── dto/                                ← Request/Response DTOs
+│   │   │   ├── AnalyticsDTO.java               ← Dashboard stats, visit trend, geo, etc.
 │   │   │   ├── BeanRequestDTO.java
 │   │   │   ├── BeanResponseDTO.java
 │   │   │   ├── BrewLogRequestDTO.java
@@ -98,6 +104,7 @@ src/
 │   │   ├── entity/                             ← JPA entities
 │   │   │   ├── Bean.java
 │   │   │   ├── BrewLog.java
+│   │   │   ├── PageVisit.java                  ← Page visit tracking with geo-location
 │   │   │   ├── RoastLevel.java                 ← ENUM
 │   │   │   ├── Role.java                       ← ENUM (USER, ADMIN)
 │   │   │   └── User.java
@@ -107,12 +114,14 @@ src/
 │   │   ├── repository/                         ← Spring Data JPA repos
 │   │   │   ├── BeanRepository.java
 │   │   │   ├── BrewLogRepository.java
+│   │   │   ├── PageVisitRepository.java        ← Analytics aggregation queries
 │   │   │   └── UserRepository.java
 │   │   ├── security/                           ← JWT & auth components
 │   │   │   ├── CustomUserDetailsService.java
 │   │   │   ├── JwtAuthenticationFilter.java
 │   │   │   └── JwtService.java
 │   │   └── service/                            ← Business logic
+│   │       ├── AnalyticsService.java           ← Visit tracking, geo-resolution, dashboard aggregation
 │   │       ├── BeanService.java
 │   │       └── BrewLogService.java
 │   └── resources/
@@ -121,7 +130,8 @@ src/
 │           ├── V1__init_schema.sql             ← Beans + brew_logs tables
 │           ├── V2__add_users_table.sql         ← Users table
 │           ├── V3__fix_users_role_enum.sql     ← Fix role column type
-│           └── V4__seed_admin_user.sql         ← Seed default admin user
+│           ├── V4__seed_admin_user.sql         ← Seed default admin user
+│           └── V5__add_page_visits_table.sql   ← Page visits for analytics
 └── pom.xml
 ```
 
@@ -223,6 +233,34 @@ ALTER TABLE users
 MODIFY COLUMN role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER';
 ```
 
+### Migration V5 — `V5__add_page_visits_table.sql`
+
+Creates the `page_visits` table for analytics tracking:
+
+```sql
+CREATE TABLE page_visits (
+    id BINARY(16) NOT NULL,
+    page_path VARCHAR(500) NOT NULL,
+    resource_id BINARY(16),
+    ip_address VARCHAR(45),
+    country VARCHAR(100),
+    city VARCHAR(100),
+    user_agent TEXT,
+    visited_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_visited_at (visited_at),
+    INDEX idx_country (country),
+    INDEX idx_page_path (page_path)
+);
+```
+
+- `page_path` — The URL path visited (e.g., `/beans`, `/beans/{id}`, `/brew-log/new`)
+- `resource_id` — Optional UUID linking to the specific bean or brew log viewed
+- `ip_address` — Stored temporarily for geo-resolution (not retained long-term)
+- `country` / `city` — Resolved from IP via ip-api.com
+- `user_agent` — Browser user agent string
+- `visited_at` — Timestamp of the visit
+
 ### Migration V4 — `V4__seed_admin_user.sql`
 
 Seeds the default admin user so authentication works out of the box:
@@ -267,6 +305,17 @@ All endpoints are prefixed with `/api/v1/`.
 | POST | `/api/v1/beans` | Add a new coffee bean | ADMIN | 201 Created, 400 Bad Request |
 | PUT | `/api/v1/beans/{id}` | Update an existing bean | ADMIN | 200 OK, 404 Not Found |
 | DELETE | `/api/v1/beans/{id}` | Soft-delete (sets is_active=false) | ADMIN | 204 No Content, 404 Not Found |
+
+### Analytics API (`AnalyticsController`)
+
+| Method | Endpoint | Description | Required Role | Status Codes |
+|--------|----------|-------------|---------------|--------------|
+| POST | `/api/v1/analytics/visit` | Record a page visit (public, no auth) | Public | 200 OK |
+| GET | `/api/v1/analytics/dashboard` | Get all dashboard stats | ADMIN | 200 OK |
+| GET | `/api/v1/analytics/top-beans` | Get most viewed beans | ADMIN | 200 OK |
+| GET | `/api/v1/analytics/top-brews` | Get most viewed brew logs | ADMIN | 200 OK |
+| GET | `/api/v1/analytics/geo` | Get country/city breakdown | ADMIN | 200 OK |
+| GET | `/api/v1/analytics/trends?days=30` | Get daily visit counts | ADMIN | 200 OK |
 
 ### Brew Logs API (`BrewLogController`)
 
@@ -349,6 +398,7 @@ public interface BeanRepository extends JpaRepository<Bean, UUID> {
 
 Business logic lives in service classes:
 
+- **`AnalyticsService`** — Records page visits with geo-resolution via ip-api.com, aggregates dashboard stats (visit trends, top beans/brews, geo distribution, bean performance, rating distribution, extraction ratios)
 - **`BeanService`** — CRUD operations, soft-delete, DTO mapping
 - **`BrewLogService`** — Create brew logs, fetch by bean ID, fetch top-rated
 
@@ -514,6 +564,12 @@ public enum Role {
 | `/api/v1/brew-logs/bean/{beanId}` | GET | ✅ | ✅ |
 | `/api/v1/brew-logs/top-rated` | GET | ✅ | ✅ |
 | `/api/v1/brew-logs` | POST | ❌ 403 | ✅ |
+| `/api/v1/analytics/visit` | POST | ✅ | ✅ |
+| `/api/v1/analytics/dashboard` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/top-beans` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/top-brews` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/geo` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/trends` | GET | ❌ 403 | ✅ |
 
 ### User Registration Details
 
@@ -604,8 +660,35 @@ API functions exported:
 - `register(username, email, password)` → POST `/auth/register`
 - `getBeans()`, `getBeanById(id)`, `createBean(data)`, `updateBean(id, data)`, `deleteBean(id)`
 - `getLogsByBeanId(id)`, `getTopRatedLogs()`, `createBrewLog(data)`
+- `getDashboardStats()`, `getTopBeans()`, `getTopBrews()`, `getGeoDistribution()`, `getVisitTrend(days)`
 
-### 3. ProtectedRoute (`frontend/src/components/ProtectedRoute.jsx`)
+### 3. VisitTracker (`frontend/src/components/VisitTracker.jsx`)
+
+An invisible component placed in `App.jsx` that automatically tracks page views:
+
+```jsx
+function VisitTracker() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const data = {
+      pagePath: location.pathname,
+      resourceId: extractResourceId(location.pathname),
+      userAgent: navigator.userAgent,
+    };
+    navigator.sendBeacon("/api/v1/analytics/visit", JSON.stringify(data));
+  }, [location.pathname]);
+
+  return null; // Invisible component
+}
+```
+
+- Uses `navigator.sendBeacon()` for fire-and-forget tracking (reliable even during page unload)
+- Extracts resource IDs from URL patterns like `/beans/{id}` or `/brew-log/{id}`
+- Fires on every route change
+
+### 4. ProtectedRoute (`frontend/src/components/ProtectedRoute.jsx`)
 
 Wraps pages that require authentication:
 
@@ -618,18 +701,43 @@ function ProtectedRoute({ children }) {
 }
 ```
 
-### 4. Role-Based UI Rendering
+The `ProtectedRoute` component also supports an `adminOnly` prop:
+
+```jsx
+<Route path="/admin/analytics" element={
+  <ProtectedRoute adminOnly>
+    <AnalyticsDashboard />
+  </ProtectedRoute>
+} />
+```
+
+When `adminOnly` is true, non-admin users are redirected to the home page.
+
+### 5. Role-Based UI Rendering
 
 Every page checks `user.role === "ADMIN"` to conditionally render admin-only UI elements:
 
 | Component | Admin Sees | Regular User Sees |
 |-----------|-----------|-------------------|
-| **Header** | Dashboard, Beans, + Add Bean, Admin badge, Logout | Dashboard, Beans, Sign In/Logout |
+| **Header** | Dashboard, Beans, Analytics, + Add Bean, Admin badge, Logout | Dashboard, Beans, Sign In/Logout |
 | **Dashboard** | + Add Bean, + Log Brew buttons | View-only content |
 | **Bean List** | Edit, Delete buttons on each card | View-only grid |
 | **Bean Detail** | Edit, Log Brew, Delete action buttons | View-only info |
 
-### 5. Route Configuration (`frontend/src/App.jsx`)
+### 6. Analytics Dashboard (`frontend/src/pages/AnalyticsDashboard.jsx`)
+
+An admin-only page with 6 charts built using **Recharts**:
+
+| Chart | Type | Description |
+|-------|------|-------------|
+| Visit Trend | Line Chart | Daily visits over the last 30 days |
+| Country Breakdown | Bar Chart | Top countries visiting the app |
+| Top Viewed Beans | Horizontal Bar Chart | Most viewed bean detail pages |
+| Bean Performance | Dual Bar Chart | Average rating vs brew count per bean |
+| Extraction Ratio | Scatter Plot | Dose vs yield colored by rating |
+| Rating Distribution | Bar Chart | Count of 1-5 star ratings |
+
+### 7. Route Configuration (`frontend/src/App.jsx`)
 
 ```jsx
 <Routes>
@@ -637,11 +745,12 @@ Every page checks `user.role === "ADMIN"` to conditionally render admin-only UI 
   <Route path="/register" element={<RegisterPage />} />    // Public
   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />       // Protected
   <Route path="/beans" element={<ProtectedRoute><BeanList /></ProtectedRoute>} />   // Protected
+  <Route path="/admin/analytics" element={<ProtectedRoute adminOnly><AnalyticsDashboard /></ProtectedRoute>} />  // Admin only
   // ... all other routes are protected
 </Routes>
 ```
 
-### 6. Vite Proxy (`frontend/vite.config.js`)
+### 8. Vite Proxy (`frontend/vite.config.js`)
 
 ```javascript
 server: {

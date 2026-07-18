@@ -14,6 +14,9 @@ A comprehensive backend API to track specialty coffee beans and espresso extract
 - **API Docs**: Swagger UI / OpenAPI (springdoc-openapi)
 - **Build Tool**: Maven 3.9+
 - **Frontend**: React 19 + Vite 8
+- **Charts**: Recharts
+- **Geo-IP Resolution**: ip-api.com (free, no API key)
+- **Page Tracking**: navigator.sendBeacon()
 
 ## Quick Start
 
@@ -106,6 +109,16 @@ All endpoints are prefixed with `/api/v1/`.
 | PUT | `/api/v1/beans/{id}` | Update a bean | ADMIN |
 | DELETE | `/api/v1/beans/{id}` | Soft-delete a bean | ADMIN |
 
+### Analytics
+| Method | Endpoint | Description | Required Role |
+|--------|----------|-------------|---------------|
+| POST | `/api/v1/analytics/visit` | Record a page visit | Public (no auth) |
+| GET | `/api/v1/analytics/dashboard` | Get all dashboard stats | ADMIN |
+| GET | `/api/v1/analytics/top-beans` | Most viewed beans | ADMIN |
+| GET | `/api/v1/analytics/top-brews` | Most viewed brew logs | ADMIN |
+| GET | `/api/v1/analytics/geo` | Country/city breakdown | ADMIN |
+| GET | `/api/v1/analytics/trends?days=30` | Daily visit trend | ADMIN |
+
 ### Brew Logs
 | Method | Endpoint | Description | Required Role |
 |--------|----------|-------------|---------------|
@@ -142,10 +155,17 @@ This project uses **JWT (JSON Web Token)** authentication with **Spring Security
 | `/api/v1/brew-logs/bean/{beanId}` | GET | ✅ | ✅ |
 | `/api/v1/brew-logs/top-rated` | GET | ✅ | ✅ |
 | `/api/v1/brew-logs` | POST | ❌ 403 | ✅ |
+| `/api/v1/analytics/visit` | POST | ✅ | ✅ |
+| `/api/v1/analytics/dashboard` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/top-beans` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/top-brews` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/geo` | GET | ❌ 403 | ✅ |
+| `/api/v1/analytics/trends` | GET | ❌ 403 | ✅ |
 
 ### Frontend Role-Based UI
 
-- **Admin users** see all navigation links (+ Add Bean), Edit/Delete buttons on beans, Log Brew buttons, and an "Admin" badge in the header
+- **Admin users** see all navigation links (Analytics, + Add Bean), Edit/Delete buttons on beans, Log Brew buttons, and an "Admin" badge in the header
+- **Analytics Dashboard** at `/admin/analytics` with 6 charts showing visit trends, geo distribution, top content, bean performance, extraction ratios, and rating distribution
 - **Regular users** see only Dashboard and Beans navigation. No write/delete actions are displayed — the UI is view-only
 
 ### Testing with curl
@@ -174,5 +194,29 @@ curl -X POST http://localhost:9090/api/v1/auth/register \
   -d '{"username":"newuser","email":"new@example.com","password":"password123"}'
 ```
 
+## Analytics & Page Tracking
+
+The app includes automatic page visit tracking and an admin-only analytics dashboard.
+
+### How It Works
+
+1. **VisitTracker** — An invisible React component wraps every page and calls `navigator.sendBeacon()` on route changes to POST to `/api/v1/analytics/visit`
+2. **Geo-Resolution** — For non-localhost IPs, the backend calls `ip-api.com` (free, no API key) to resolve country/city. Results are cached per IP per day
+3. **Aggregation** — The `AnalyticsService` processes raw visit data into trend lines, geo distributions, top content lists, and brew performance metrics
+
+### Analytics Dashboard
+
+Admin users can access the dashboard at `/admin/analytics`, which displays:
+
+| Chart | Description |
+|-------|-------------|
+| Visit Trend (Line) | Daily page visits over the last 30 days |
+| Country Breakdown (Bar) | Geographic distribution of visitors |
+| Top Viewed Beans (Horizontal Bar) | Most popular bean detail pages |
+| Bean Performance (Dual Bar) | Average rating vs brew count per bean |
+| Extraction Ratio (Scatter) | Dose vs yield, colored by rating |
+| Rating Distribution (Bar) | Count of 1–5 star ratings |
+
 ## Architecture
+
 This project follows an N-Tier architecture (Controller, Service, Repository) with Flyway-managed database migrations, JWT-based authentication, role-based authorization, and Swagger-based API documentation. See [`BOILERPLATE.md`](./BOILERPLATE.md) for a detailed breakdown of every component.
