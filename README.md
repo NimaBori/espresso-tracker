@@ -2,6 +2,8 @@
 
 A comprehensive backend API to track specialty coffee beans and espresso extraction parameters, built with Spring Boot and MySQL, with a React frontend.
 
+> 🚀 **Live Demo**: [https://nimabori.github.io/espresso-tracker/](https://nimabori.github.io/espresso-tracker/) — Fully functional frontend demo with sample data (no backend required). Login with `demo` / `demo`.
+
 > 📘 **For a complete deep-dive into the project architecture, configuration, and all components, see [`BOILERPLATE.md`](./BOILERPLATE.md).**
 
 ## Tech Stack
