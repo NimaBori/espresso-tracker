@@ -109,11 +109,7 @@ export const createBrewLog = (logData) =>
 export const getDashboardStats = async () => {
   if (isDemo) {
     await delay();
-    return {
-      totalBeans: mockAnalytics.totalBeans,
-      totalBrewLogs: mockAnalytics.totalBrewLogs,
-      averageRating: mockAnalytics.averageRating,
-    };
+    return mockAnalytics;
   }
   return api.get("/analytics/dashboard").then((res) => res.data);
 };

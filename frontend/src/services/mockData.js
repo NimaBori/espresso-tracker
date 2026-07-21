@@ -86,10 +86,15 @@ export const mockBeans = [
   },
 ];
 
+// Helper to get bean name from ID
+const beanNameById = (id) =>
+  mockBeans.find((b) => b.id === id)?.beanName || "Unknown Bean";
+
 export const mockBrewLogs = [
   {
     id: 1,
     beanId: 1,
+    beanName: beanNameById(1),
     doseGrams: 18,
     yieldGrams: 36,
     extractionTimeSeconds: 28,
@@ -101,6 +106,7 @@ export const mockBrewLogs = [
   {
     id: 2,
     beanId: 1,
+    beanName: beanNameById(1),
     doseGrams: 18,
     yieldGrams: 40,
     extractionTimeSeconds: 30,
@@ -112,6 +118,7 @@ export const mockBrewLogs = [
   {
     id: 3,
     beanId: 2,
+    beanName: beanNameById(2),
     doseGrams: 19,
     yieldGrams: 38,
     extractionTimeSeconds: 27,
@@ -123,6 +130,7 @@ export const mockBrewLogs = [
   {
     id: 4,
     beanId: 2,
+    beanName: beanNameById(2),
     doseGrams: 19,
     yieldGrams: 42,
     extractionTimeSeconds: 32,
@@ -134,6 +142,7 @@ export const mockBrewLogs = [
   {
     id: 5,
     beanId: 3,
+    beanName: beanNameById(3),
     doseGrams: 18,
     yieldGrams: 36,
     extractionTimeSeconds: 29,
@@ -145,6 +154,7 @@ export const mockBrewLogs = [
   {
     id: 6,
     beanId: 4,
+    beanName: beanNameById(4),
     doseGrams: 20,
     yieldGrams: 40,
     extractionTimeSeconds: 26,
@@ -156,6 +166,7 @@ export const mockBrewLogs = [
   {
     id: 7,
     beanId: 5,
+    beanName: beanNameById(5),
     doseGrams: 20,
     yieldGrams: 35,
     extractionTimeSeconds: 25,
@@ -168,6 +179,7 @@ export const mockBrewLogs = [
   {
     id: 8,
     beanId: 6,
+    beanName: beanNameById(6),
     doseGrams: 18,
     yieldGrams: 37,
     extractionTimeSeconds: 30,
@@ -179,6 +191,7 @@ export const mockBrewLogs = [
   {
     id: 9,
     beanId: 7,
+    beanName: beanNameById(7),
     doseGrams: 15,
     yieldGrams: 30,
     extractionTimeSeconds: 35,
@@ -190,6 +203,7 @@ export const mockBrewLogs = [
   {
     id: 10,
     beanId: 8,
+    beanName: beanNameById(8),
     doseGrams: 19,
     yieldGrams: 34,
     extractionTimeSeconds: 24,
@@ -202,27 +216,61 @@ export const mockBrewLogs = [
 ];
 
 export const mockAnalytics = {
+  totalVisits: 117,
+  visitsToday: 7,
   totalBeans: 8,
   totalBrewLogs: 10,
   averageRating: 4.0,
+  visitTrend: [
+    { date: "2026-07-12", count: 12 },
+    { date: "2026-07-13", count: 8 },
+    { date: "2026-07-14", count: 15 },
+    { date: "2026-07-15", count: 10 },
+    { date: "2026-07-16", count: 22 },
+    { date: "2026-07-17", count: 18 },
+    { date: "2026-07-18", count: 25 },
+    { date: "2026-07-19", count: 7 },
+  ],
+  geoDistribution: [
+    { country: "United States", count: 45 },
+    { country: "Germany", count: 12 },
+    { country: "United Kingdom", count: 10 },
+    { country: "Canada", count: 8 },
+    { country: "Brazil", count: 6 },
+  ],
   topBeans: [
-    { id: 7, beanName: "Panama Geisha", averageRating: 5.0, brewCount: 1 },
-    { id: 3, beanName: "Kenya Gachatha", averageRating: 5.0, brewCount: 1 },
+    {
+      id: 7,
+      beanName: "Panama Geisha",
+      visitCount: 34,
+      averageRating: 5.0,
+      brewCount: 1,
+    },
+    {
+      id: 3,
+      beanName: "Kenya Gachatha",
+      visitCount: 28,
+      averageRating: 5.0,
+      brewCount: 1,
+    },
     {
       id: 1,
       beanName: "Ethiopia Yirgacheffe",
+      visitCount: 22,
       averageRating: 4.5,
       brewCount: 2,
     },
     {
       id: 2,
       beanName: "Colombia El Paraiso",
+      visitCount: 18,
       averageRating: 3.5,
       brewCount: 2,
     },
     {
       id: 4,
       beanName: "Guatemala Finca El Injerto",
+      visitCount: 15,
       averageRating: 4.0,
       brewCount: 1,
     },
@@ -269,21 +317,33 @@ export const mockAnalytics = {
       extractionTimeSeconds: 32,
     },
   ],
-  visitTrend: [
-    { date: "2026-07-12", visits: 12 },
-    { date: "2026-07-13", visits: 8 },
-    { date: "2026-07-14", visits: 15 },
-    { date: "2026-07-15", visits: 10 },
-    { date: "2026-07-16", visits: 22 },
-    { date: "2026-07-17", visits: 18 },
-    { date: "2026-07-18", visits: 25 },
-    { date: "2026-07-19", visits: 7 },
+  beanPerformance: [
+    { beanName: "Ethiopia Yirgacheffe", avgRating: 4.5, brewCount: 2 },
+    { beanName: "Colombia El Paraiso", avgRating: 3.5, brewCount: 2 },
+    { beanName: "Kenya Gachatha", avgRating: 5.0, brewCount: 1 },
+    { beanName: "Guatemala Finca El Injerto", avgRating: 4.0, brewCount: 1 },
+    { beanName: "Brazil Fazenda Santa Ines", avgRating: 3.0, brewCount: 1 },
+    { beanName: "Costa Rica Las Lajas", avgRating: 4.0, brewCount: 1 },
+    { beanName: "Panama Geisha", avgRating: 5.0, brewCount: 1 },
+    { beanName: "Sumatra Mandheling", avgRating: 3.0, brewCount: 1 },
   ],
-  geoDistribution: [
-    { country: "United States", visits: 45 },
-    { country: "Germany", visits: 12 },
-    { country: "United Kingdom", visits: 10 },
-    { country: "Canada", visits: 8 },
-    { country: "Brazil", visits: 6 },
+  extractionRatios: [
+    { doseGrams: 18, yieldGrams: 36, rating: 4 },
+    { doseGrams: 18, yieldGrams: 40, rating: 5 },
+    { doseGrams: 19, yieldGrams: 38, rating: 3 },
+    { doseGrams: 19, yieldGrams: 42, rating: 4 },
+    { doseGrams: 18, yieldGrams: 36, rating: 5 },
+    { doseGrams: 20, yieldGrams: 40, rating: 4 },
+    { doseGrams: 20, yieldGrams: 35, rating: 3 },
+    { doseGrams: 18, yieldGrams: 37, rating: 4 },
+    { doseGrams: 15, yieldGrams: 30, rating: 5 },
+    { doseGrams: 19, yieldGrams: 34, rating: 3 },
+  ],
+  ratingDistribution: [
+    { rating: "1 Star", count: 0 },
+    { rating: "2 Stars", count: 0 },
+    { rating: "3 Stars", count: 3 },
+    { rating: "4 Stars", count: 4 },
+    { rating: "5 Stars", count: 3 },
   ],
 };
