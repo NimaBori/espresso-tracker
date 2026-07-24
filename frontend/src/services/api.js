@@ -10,8 +10,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  // Short timeout so fallback kicks in quickly if Render is down
-  timeout: 5000,
+  // Timeout for Render cold start (free tier needs ~30s to wake up)
+  timeout: 30000,
 });
 
 // Attach JWT token to every request if available
@@ -65,14 +65,21 @@ export const login = async (username, password) => {
   // If we already know backend is down, use mock login
   if (isMockMode()) {
     await delay();
-    if (username === "demo" && password === "demo") {
+    // Accept any of these credentials for mock mode
+    if (
+      (username === "demo" && password === "demo") ||
+      (username === "demo" && password === "demo123") ||
+      (username === "admin" && password === "admin123")
+    ) {
       return {
         token: "demo-jwt-token",
         username: "demo_user",
         role: "ADMIN",
       };
     }
-    throw new Error("Invalid credentials. Try demo/demo");
+    throw new Error(
+      "Invalid credentials. Try demo/demo (mock) or admin/admin123 (local backend)",
+    );
   }
 
   try {
@@ -91,14 +98,21 @@ export const login = async (username, password) => {
       backendAvailable = false;
       localStorage.setItem("useMock", "true");
       await delay();
-      if (username === "demo" && password === "demo") {
+      // Accept any of these credentials for mock mode
+      if (
+        (username === "demo" && password === "demo") ||
+        (username === "demo" && password === "demo123") ||
+        (username === "admin" && password === "admin123")
+      ) {
         return {
           token: "demo-jwt-token",
           username: "demo_user",
           role: "ADMIN",
         };
       }
-      throw new Error("Invalid credentials. Try demo/demo");
+      throw new Error(
+        "Invalid credentials. Try demo/demo (mock) or admin/admin123 (local backend)",
+      );
     }
     throw error;
   }
