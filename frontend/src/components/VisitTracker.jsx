@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+// Use the same API base URL as the rest of the app
+const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
+const API_BASE_URL = isDemo
+  ? import.meta.env.VITE_API_URL ||
+  "https://espresso-tracker-backend.onrender.com"
+  : import.meta.env.VITE_API_URL || "/api/v1";
+
 /**
  * Invisible component that tracks page visits.
  * Place in App.jsx wrapper. On every route change,
@@ -28,13 +35,15 @@ export default function VisitTracker() {
       resourceId,
     });
 
+    const url = `${API_BASE_URL}/api/v1/analytics/visit`;
+
     // Use sendBeacon for fire-and-forget tracking
     if (navigator.sendBeacon) {
       const blob = new Blob([payload], { type: "application/json" });
-      navigator.sendBeacon("/api/v1/analytics/visit", blob);
+      navigator.sendBeacon(url, blob);
     } else {
       // Fallback to fetch
-      fetch("/api/v1/analytics/visit", {
+      fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: payload,
