@@ -1,31 +1,71 @@
 import axios from "axios";
-import { mockBeans, mockBrewLogs, mockAnalytics } from "./mockData";
+import { mockBeans, mockBrewLogs, mockAnalytics, mockUser } from "./mockData";
 
-// Check if we're in demo mode (GitHub Pages)
-const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
+// Backend URL (Render) - always set for GitHub Pages
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://espresso-tracker-backend.onrender.com";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  // Short timeout so fallback kicks in quickly if Render is down
+  timeout: 5000,
 });
 
 // Attach JWT token to every request if available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) {
+  if (token && token !== "demo-jwt-token") {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Simulate network delay in demo mode
+// Simulate network delay for mock data
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Track whether backend is available (checked on first API call)
+let backendAvailable = true;
+
+// Check if we should use mock data (backend was unreachable)
+const useMockData = () => {
+  return !backendAvailable || localStorage.getItem("useMock") === "true";
+};
+
+// Try a real API call, fall back to mock on network error
+async function withFallback(apiCall, mockFn) {
+  // If we already know backend is down, skip straight to mock
+  if (useMockData()) {
+    await delay();
+    return mockFn();
+  }
+
+  try {
+    const result = await apiCall();
+    return result;
+  } catch (error) {
+    // Only fall back on network errors (not 401/403 which mean backend is working)
+    if (
+      !error.response &&
+      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED")
+    ) {
+      console.warn("Backend unreachable, falling back to mock data");
+      backendAvailable = false;
+      localStorage.setItem("useMock", "true");
+      await delay();
+      return mockFn();
+    }
+    throw error;
+  }
+}
 
 // Auth API
 export const login = async (username, password) => {
-  if (isDemo) {
+  // If we already know backend is down, use mock login
+  if (useMockData()) {
     await delay();
     if (username === "demo" && password === "demo") {
       return {
@@ -36,114 +76,135 @@ export const login = async (username, password) => {
     }
     throw new Error("Invalid credentials. Try demo/demo");
   }
-  return api
-    .post("/auth/login", { username, password })
-    .then((res) => res.data);
+
+  try {
+    const response = await api.post("/api/v1/auth/login", {
+      username,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    // Network error -> fall back to mock
+    if (
+      !error.response &&
+      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED")
+    ) {
+      console.warn("Backend unreachable, switching to demo mode");
+      backendAvailable = false;
+      localStorage.setItem("useMock", "true");
+      await delay();
+      if (username === "demo" && password === "demo") {
+        return {
+          token: "demo-jwt-token",
+          username: "demo_user",
+          role: "ADMIN",
+        };
+      }
+      throw new Error("Invalid credentials. Try demo/demo");
+    }
+    throw error;
+  }
 };
 
 export const register = (username, email, password) =>
   api
-    .post("/auth/register", { username, email, password })
+    .post("/api/v1/auth/register", { username, email, password })
     .then((res) => res.data);
 
 // Beans API
 export const getBeans = async (page = 0, size = 20) => {
-  if (isDemo) {
-    await delay();
-    return {
+  return withFallback(
+    () =>
+      api.get(`/api/v1/beans?page=${page}&size=${size}`).then((r) => r.data),
+    () => ({
       content: mockBeans,
       totalElements: mockBeans.length,
       totalPages: 1,
       number: page,
       size,
-    };
-  }
-  return api.get(`/beans?page=${page}&size=${size}`).then((res) => res.data);
+    }),
+  );
 };
 
 export const getBeanById = async (id) => {
-  if (isDemo) {
-    await delay();
-    const bean = mockBeans.find((b) => b.id === Number(id));
-    if (!bean) throw new Error("Bean not found");
-    return bean;
-  }
-  return api.get(`/beans/${id}`).then((res) => res.data);
+  return withFallback(
+    () => api.get(`/api/v1/beans/${id}`).then((r) => r.data),
+    () => {
+      const bean = mockBeans.find((b) => b.id === Number(id));
+      if (!bean) throw new Error("Bean not found");
+      return bean;
+    },
+  );
 };
 
 export const createBean = (beanData) =>
-  api.post("/beans", beanData).then((res) => res.data);
+  api.post("/api/v1/beans", beanData).then((res) => res.data);
 
 export const updateBean = (id, beanData) =>
-  api.put(`/beans/${id}`, beanData).then((res) => res.data);
+  api.put(`/api/v1/beans/${id}`, beanData).then((res) => res.data);
 
 export const deleteBean = async (id) => {
-  if (isDemo) {
+  if (useMockData()) {
     await delay();
     return;
   }
-  return api.delete(`/beans/${id}`);
+  return api.delete(`/api/v1/beans/${id}`);
 };
 
 // Brew Logs API
 export const getLogsByBeanId = async (beanId) => {
-  if (isDemo) {
-    await delay();
-    return mockBrewLogs.filter((log) => log.beanId === Number(beanId));
-  }
-  return api.get(`/brew-logs/bean/${beanId}`).then((res) => res.data);
+  return withFallback(
+    () => api.get(`/api/v1/brew-logs/bean/${beanId}`).then((r) => r.data),
+    () => mockBrewLogs.filter((log) => log.beanId === Number(beanId)),
+  );
 };
 
 export const getTopRatedLogs = async () => {
-  if (isDemo) {
-    await delay();
-    return [...mockBrewLogs].sort((a, b) => b.rating - a.rating).slice(0, 5);
-  }
-  return api.get("/brew-logs/top-rated").then((res) => res.data);
+  return withFallback(
+    () => api.get("/api/v1/brew-logs/top-rated").then((r) => r.data),
+    () => [...mockBrewLogs].sort((a, b) => b.rating - a.rating).slice(0, 5),
+  );
 };
 
 export const createBrewLog = (logData) =>
-  api.post("/brew-logs", logData).then((res) => res.data);
+  api.post("/api/v1/brew-logs", logData).then((res) => res.data);
 
 // Analytics API
 export const getDashboardStats = async () => {
-  if (isDemo) {
-    await delay();
-    return mockAnalytics;
-  }
-  return api.get("/analytics/dashboard").then((res) => res.data);
+  return withFallback(
+    () => api.get("/api/v1/analytics/dashboard").then((r) => r.data),
+    () => mockAnalytics,
+  );
 };
 
 export const getTopBeans = async (limit = 10) => {
-  if (isDemo) {
-    await delay();
-    return mockAnalytics.topBeans.slice(0, limit);
-  }
-  return api.get(`/analytics/top-beans?limit=${limit}`).then((res) => res.data);
+  return withFallback(
+    () =>
+      api.get(`/api/v1/analytics/top-beans?limit=${limit}`).then((r) => r.data),
+    () => mockAnalytics.topBeans.slice(0, limit),
+  );
 };
 
 export const getTopBrews = async (limit = 10) => {
-  if (isDemo) {
-    await delay();
-    return mockAnalytics.topBrews.slice(0, limit);
-  }
-  return api.get(`/analytics/top-brews?limit=${limit}`).then((res) => res.data);
+  return withFallback(
+    () =>
+      api.get(`/api/v1/analytics/top-brews?limit=${limit}`).then((r) => r.data),
+    () => mockAnalytics.topBrews.slice(0, limit),
+  );
 };
 
 export const getGeoDistribution = async () => {
-  if (isDemo) {
-    await delay();
-    return mockAnalytics.geoDistribution;
-  }
-  return api.get("/analytics/geo").then((res) => res.data);
+  return withFallback(
+    () => api.get("/api/v1/analytics/geo").then((r) => r.data),
+    () => mockAnalytics.geoDistribution,
+  );
 };
 
 export const getVisitTrend = async (days = 30) => {
-  if (isDemo) {
-    await delay();
-    return mockAnalytics.visitTrend;
-  }
-  return api.get(`/analytics/trends?days=${days}`).then((res) => res.data);
+  return withFallback(
+    () => api.get(`/api/v1/analytics/trends?days=${days}`).then((r) => r.data),
+    () => mockAnalytics.visitTrend,
+  );
 };
 
 export default api;

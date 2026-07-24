@@ -11,14 +11,7 @@ export function AuthProvider({ children }) {
     const username = localStorage.getItem("username");
     const role = localStorage.getItem("role");
 
-    // Auto-login in demo mode
-    const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
-    if (isDemo && !token) {
-      localStorage.setItem("token", "demo-jwt-token");
-      localStorage.setItem("username", "demo_user");
-      localStorage.setItem("role", "ADMIN");
-      setUser({ token: "demo-jwt-token", username: "demo_user", role: "ADMIN" });
-    } else if (token && username) {
+    if (token && username) {
       setUser({ token, username, role });
     }
     setLoading(false);
