@@ -2,11 +2,9 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 // Use the same API base URL as the rest of the app
-const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
-const API_BASE_URL = isDemo
-  ? import.meta.env.VITE_API_URL ||
-  "https://espresso-tracker-backend.onrender.com"
-  : import.meta.env.VITE_API_URL || "/api/v1";
+// Local dev: empty string (uses Vite proxy to localhost:9090)
+// GitHub Pages: Render backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 /**
  * Invisible component that tracks page visits.
