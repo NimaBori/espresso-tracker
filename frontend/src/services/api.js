@@ -33,14 +33,14 @@ const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 let backendAvailable = true;
 
 // Check if we should use mock data (backend was unreachable)
-const useMockData = () => {
+const isMockMode = () => {
   return !backendAvailable || localStorage.getItem("useMock") === "true";
 };
 
 // Try a real API call, fall back to mock on network error
 async function withFallback(apiCall, mockFn) {
   // If we already know backend is down, skip straight to mock
-  if (useMockData()) {
+  if (isMockMode()) {
     await delay();
     return mockFn();
   }
@@ -67,7 +67,7 @@ async function withFallback(apiCall, mockFn) {
 // Auth API
 export const login = async (username, password) => {
   // If we already know backend is down, use mock login
-  if (useMockData()) {
+  if (isMockMode()) {
     await delay();
     if (username === "demo" && password === "demo") {
       return {
@@ -146,7 +146,7 @@ export const updateBean = (id, beanData) =>
   api.put(`/api/v1/beans/${id}`, beanData).then((res) => res.data);
 
 export const deleteBean = async (id) => {
-  if (useMockData()) {
+  if (isMockMode()) {
     await delay();
     return;
   }
