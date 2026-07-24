@@ -62,24 +62,29 @@ async function withFallback(apiCall, mockFn) {
 
 // Auth API
 export const login = async (username, password) => {
-  // If we already know backend is down, use mock login
-  if (isMockMode()) {
-    await delay();
-    // Accept any of these credentials for mock mode
+  // Always try the real backend first (clear any previous mock flag)
+  const wasMock = isMockMode();
+  if (wasMock) {
+    // If user is trying non-mock credentials, clear mock flag and try real backend
     if (
-      (username === "demo" && password === "demo") ||
-      (username === "demo" && password === "demo123") ||
-      (username === "admin" && password === "admin123")
+      !(
+        (username === "demo" && password === "demo") ||
+        (username === "demo" && password === "demo123") ||
+        (username === "admin" && password === "admin123")
+      )
     ) {
+      // Clear mock flag and try real backend
+      localStorage.removeItem("useMock");
+      backendAvailable = true;
+    } else {
+      // Mock credentials in mock mode -> use mock
+      await delay();
       return {
         token: "demo-jwt-token",
         username: "demo_user",
         role: "ADMIN",
       };
     }
-    throw new Error(
-      "Invalid credentials. Try demo/demo (mock) or admin/admin123 (local backend)",
-    );
   }
 
   try {
@@ -87,6 +92,9 @@ export const login = async (username, password) => {
       username,
       password,
     });
+    // Login succeeded with real backend, clear mock flag
+    localStorage.removeItem("useMock");
+    backendAvailable = true;
     return response.data;
   } catch (error) {
     // Network error -> fall back to mock
