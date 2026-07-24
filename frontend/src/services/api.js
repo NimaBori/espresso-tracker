@@ -6,7 +6,11 @@ const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
 const API_BASE_URL = isDemo
   ? import.meta.env.VITE_API_URL ||
     "https://espresso-tracker-backend.onrender.com"
-  : import.meta.env.VITE_API_URL || "/api/v1";
+  : import.meta.env.VITE_API_URL || "";
+
+// When running locally, the Vite proxy handles /api -> localhost:9090
+// When deployed, we need the full Render URL
+const API_PREFIX = isDemo ? "/api/v1" : "/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -80,18 +84,22 @@ export const login = async (username, password) => {
   }
 
   try {
-    const response = await api.post("/api/v1/auth/login", {
+    const response = await api.post(`${API_PREFIX}/auth/login`, {
       username,
       password,
     });
     return response.data;
   } catch (error) {
-    // Network error -> fall back to mock
+    // Network error or auth error -> fall back to mock
     if (
-      !error.response &&
-      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED")
+      (!error.response &&
+        (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED")) ||
+      (error.response &&
+        (error.response.status === 401 || error.response.status === 403))
     ) {
-      console.warn("Backend unreachable, switching to demo mode");
+      console.warn(
+        "Backend unreachable or auth failed, switching to demo mode",
+      );
       backendAvailable = false;
       localStorage.setItem("useMock", "true");
       await delay();
@@ -110,14 +118,16 @@ export const login = async (username, password) => {
 
 export const register = (username, email, password) =>
   api
-    .post("/api/v1/auth/register", { username, email, password })
+    .post(`${API_PREFIX}/auth/register`, { username, email, password })
     .then((res) => res.data);
 
 // Beans API
 export const getBeans = async (page = 0, size = 20) => {
   return withFallback(
     () =>
-      api.get(`/api/v1/beans?page=${page}&size=${size}`).then((r) => r.data),
+      api
+        .get(`${API_PREFIX}/beans?page=${page}&size=${size}`)
+        .then((r) => r.data),
     () => ({
       content: mockBeans,
       totalElements: mockBeans.length,
@@ -130,7 +140,7 @@ export const getBeans = async (page = 0, size = 20) => {
 
 export const getBeanById = async (id) => {
   return withFallback(
-    () => api.get(`/api/v1/beans/${id}`).then((r) => r.data),
+    () => api.get(`${API_PREFIX}/beans/${id}`).then((r) => r.data),
     () => {
       const bean = mockBeans.find((b) => b.id === Number(id));
       if (!bean) throw new Error("Bean not found");
@@ -140,41 +150,41 @@ export const getBeanById = async (id) => {
 };
 
 export const createBean = (beanData) =>
-  api.post("/api/v1/beans", beanData).then((res) => res.data);
+  api.post(`${API_PREFIX}/beans`, beanData).then((res) => res.data);
 
 export const updateBean = (id, beanData) =>
-  api.put(`/api/v1/beans/${id}`, beanData).then((res) => res.data);
+  api.put(`${API_PREFIX}/beans/${id}`, beanData).then((res) => res.data);
 
 export const deleteBean = async (id) => {
   if (isMockMode()) {
     await delay();
     return;
   }
-  return api.delete(`/api/v1/beans/${id}`);
+  return api.delete(`${API_PREFIX}/beans/${id}`);
 };
 
 // Brew Logs API
 export const getLogsByBeanId = async (beanId) => {
   return withFallback(
-    () => api.get(`/api/v1/brew-logs/bean/${beanId}`).then((r) => r.data),
+    () => api.get(`${API_PREFIX}/brew-logs/bean/${beanId}`).then((r) => r.data),
     () => mockBrewLogs.filter((log) => log.beanId === Number(beanId)),
   );
 };
 
 export const getTopRatedLogs = async () => {
   return withFallback(
-    () => api.get("/api/v1/brew-logs/top-rated").then((r) => r.data),
+    () => api.get(`${API_PREFIX}/brew-logs/top-rated`).then((r) => r.data),
     () => [...mockBrewLogs].sort((a, b) => b.rating - a.rating).slice(0, 5),
   );
 };
 
 export const createBrewLog = (logData) =>
-  api.post("/api/v1/brew-logs", logData).then((res) => res.data);
+  api.post(`${API_PREFIX}/brew-logs`, logData).then((res) => res.data);
 
 // Analytics API
 export const getDashboardStats = async () => {
   return withFallback(
-    () => api.get("/api/v1/analytics/dashboard").then((r) => r.data),
+    () => api.get(`${API_PREFIX}/analytics/dashboard`).then((r) => r.data),
     () => mockAnalytics,
   );
 };
@@ -182,7 +192,9 @@ export const getDashboardStats = async () => {
 export const getTopBeans = async (limit = 10) => {
   return withFallback(
     () =>
-      api.get(`/api/v1/analytics/top-beans?limit=${limit}`).then((r) => r.data),
+      api
+        .get(`${API_PREFIX}/analytics/top-beans?limit=${limit}`)
+        .then((r) => r.data),
     () => mockAnalytics.topBeans.slice(0, limit),
   );
 };
@@ -190,21 +202,26 @@ export const getTopBeans = async (limit = 10) => {
 export const getTopBrews = async (limit = 10) => {
   return withFallback(
     () =>
-      api.get(`/api/v1/analytics/top-brews?limit=${limit}`).then((r) => r.data),
+      api
+        .get(`${API_PREFIX}/analytics/top-brews?limit=${limit}`)
+        .then((r) => r.data),
     () => mockAnalytics.topBrews.slice(0, limit),
   );
 };
 
 export const getGeoDistribution = async () => {
   return withFallback(
-    () => api.get("/api/v1/analytics/geo").then((r) => r.data),
+    () => api.get(`${API_PREFIX}/analytics/geo`).then((r) => r.data),
     () => mockAnalytics.geoDistribution,
   );
 };
 
 export const getVisitTrend = async (days = 30) => {
   return withFallback(
-    () => api.get(`/api/v1/analytics/trends?days=${days}`).then((r) => r.data),
+    () =>
+      api
+        .get(`${API_PREFIX}/analytics/trends?days=${days}`)
+        .then((r) => r.data),
     () => mockAnalytics.visitTrend,
   );
 };
