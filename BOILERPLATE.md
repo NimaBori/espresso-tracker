@@ -39,15 +39,18 @@ A full-stack application for tracking specialty coffee beans and espresso extrac
 | Security              | Spring Security + JWT (jjwt 0.12.6)  |
 | Database              | MySQL 9.6 (Homebrew)                 |
 | ORM                   | Spring Data JPA / Hibernate          |
-| Migrations            | Flyway Community Edition 9.22.3      |
+| Migrations            | Flyway Community Edition 10.15.2     |
 | API Documentation     | Swagger UI / OpenAPI 3.0 (springdoc-openapi) |
 | Build Tool            | Maven 3.9+                           |
 | DTO Mapping           | Manual (Lombok for boilerplate)      |
 | Frontend              | React 19 + Vite 8                    |
+| Frontend Mock Mode    | Built-in mock data fallback (demo/demo) |
 | Frontend HTTP Client  | Axios                                |
 | Routing               | React Router v7                      |
 | Charts                | Recharts                             |
 | Geo-IP Resolution     | ip-api.com (free, no API key)        |
+| Deployment            | Docker Compose, Render (PostgreSQL)  |
+| CI/CD                 | GitHub Actions (CI + GitHub Pages)   |
 
 ---
 

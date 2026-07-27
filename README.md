@@ -10,7 +10,7 @@ A comprehensive backend API to track specialty coffee beans and espresso extract
 - **Language**: Java 21
 - **Framework**: Spring Boot 3.2.5
 - **Security**: Spring Security + JWT (jjwt 0.12.6)
-- **Database**: MySQL 9.6 (port 3307)
+- **Database**: MySQL 8.0+ (port 3307), PostgreSQL via Render
 - **ORM**: Spring Data JPA / Hibernate
 - **Migrations**: Flyway
 - **API Docs**: Swagger UI / OpenAPI (springdoc-openapi)
@@ -19,6 +19,10 @@ A comprehensive backend API to track specialty coffee beans and espresso extract
 - **Charts**: Recharts
 - **Geo-IP Resolution**: ip-api.com (free, no API key)
 - **Page Tracking**: navigator.sendBeacon()
+- **Mock Data Fallback**: Automatic demo mode when backend is unreachable
+- **Docker Compose**: Full-stack containerized deployment
+- **CI/CD**: GitHub Actions (CI) + GitHub Pages (frontend demo)
+- **Deployment**: Render (backend with PostgreSQL)
 
 ## Quick Start
 
