@@ -27,7 +27,8 @@ api.interceptors.request.use((config) => {
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Track whether backend is available (checked on first API call)
-let backendAvailable = true;
+// On GitHub Pages (VITE_DEMO_MODE=true), start in mock mode immediately
+let backendAvailable = import.meta.env.VITE_DEMO_MODE !== "true";
 
 // Check if we should use mock data (backend was unreachable)
 const isMockMode = () => {
@@ -97,12 +98,19 @@ export const login = async (username, password) => {
     backendAvailable = true;
     return response.data;
   } catch (error) {
-    // Network error -> fall back to mock
-    if (
+    // Network error or CORS error -> fall back to mock
+    const isNetworkError =
       !error.response &&
-      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED")
-    ) {
-      console.warn("Backend unreachable, switching to demo mode");
+      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED");
+    // Also fall back on 401 from Render (backend reachable but demo user may not exist)
+    const isUnauthorized = error.response && error.response.status === 401;
+
+    if (isNetworkError || isUnauthorized) {
+      console.warn(
+        isNetworkError
+          ? "Backend unreachable, switching to demo mode"
+          : "Backend returned 401, switching to demo mode",
+      );
       backendAvailable = false;
       localStorage.setItem("useMock", "true");
       await delay();
