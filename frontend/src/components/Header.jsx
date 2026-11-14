@@ -61,6 +61,14 @@ export default function Header() {
               )}
             </>
           )}
+          <NavLink
+            to="/about"
+            className={({ isActive }) =>
+              isActive ? "header__link header__link--active" : "header__link"
+            }
+          >
+            About
+          </NavLink>
         </nav>
         <div className="header__auth">
           {user ? (
